@@ -17,9 +17,9 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from neural_ode import create_model, predict, prep_data
-from fetch_oxford_weather import FEATURES, TARGET_DAYS, fetch_weather
-from train_oxford_weather import MODEL_OUTPUT
+from neural_ode import create_model, predict, prep_data  # noqa: E402
+from fetch_oxford_weather import FEATURES, TARGET_DAYS, fetch_weather  # noqa: E402
+from train_oxford_weather import MODEL_OUTPUT  # noqa: E402
 
 
 FORECAST_OUTPUT = Path(__file__).resolve().parent / "results" / "oxford_weather_forecast.csv"

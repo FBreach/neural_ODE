@@ -18,7 +18,7 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from neural_ode import (
+from neural_ode import (  # noqa: E402
     create_model,
     prep_batches,
     prep_data,
@@ -30,7 +30,7 @@ from neural_ode import (
     train_finetune,
     train_pretrain,
 )
-from fetch_oxford_weather import FEATURES, WINDOW_OUTPUT
+from fetch_oxford_weather import FEATURES, WINDOW_OUTPUT  # noqa: E402
 
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
