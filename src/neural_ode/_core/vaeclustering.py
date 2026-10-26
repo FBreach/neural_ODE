@@ -629,8 +629,7 @@ class VAEClustering(nn.Module):
             mode=mode,
             use_sampling=use_sampling,
         )
-
-        D = self.latent_dim
+        
         # KL(q(z|x_ctx) || N(0, I))
         mu, std, z0 = info["first_point"]
         mu, std = mu.squeeze(0), std.squeeze(0)

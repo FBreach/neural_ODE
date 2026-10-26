@@ -6,9 +6,6 @@
 import torch
 import torch.nn as nn
 
-from . import utils
-from torch.distributions.multivariate_normal import MultivariateNormal
-
 # git clone https://github.com/rtqichen/torchdiffeq.git
 from torchdiffeq import odeint as odeint
 
@@ -31,7 +28,7 @@ class DiffeqSolver(nn.Module):
         # Decode the trajectory through ODE Solver
         """
         n_traj_samples, n_traj = first_point.size()[0], first_point.size()[1]
-        n_dims = first_point.size()[-1]
+        #n_dims = first_point.size()[-1]
 
         pred_y = odeint(self.ode_func, first_point, time_steps_to_predict, 
             rtol=self.odeint_rtol, atol=self.odeint_atol, method = self.ode_method)

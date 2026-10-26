@@ -20,7 +20,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest"
+  "pytest",
+  "pytest-cov",
+  "ruff"
 ]
 docs = [
   "sphinx>=8.2,<9",
@@ -33,3 +35,13 @@ include = ["neural_ode*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.ruff]
+line-length = 150
+
+[tool.ruff.lint]
+select = ["E", "F"]

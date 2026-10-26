@@ -1,6 +1,5 @@
 """Helpers used by the vendored Latent ODE implementation."""
 
-import numpy as np
 import torch
 from torch import nn
 
