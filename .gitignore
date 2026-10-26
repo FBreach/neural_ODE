@@ -4,6 +4,7 @@
 build/
 dist/
 docs/_build/
+*.xml
 
 .venv/
 venv/

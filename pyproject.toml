@@ -21,7 +21,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest",
-  "pytest-cov"
+  "pytest-cov",
+  "ruff"
 ]
 docs = [
   "sphinx>=8.2,<9",
@@ -38,3 +39,9 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["src"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
