@@ -3,7 +3,7 @@ matplotlib.use("Agg")
 
 import pandas as pd
 import pytest
-import torch
+#import torch
 
 from neural_ode import generate_synthetic_data
 
