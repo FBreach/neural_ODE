@@ -72,8 +72,35 @@ def plot_input_trajectories(data, *, feature_cols=None, cutoff=None, max_traject
     """Plot feature-wise trajectories, colored by label when available.
 
     Individual paths are shown faintly with a median and interquartile band for
-    each label. Unlabeled data uses one neutral color and an overall summary.
+    each label. Unlabelled data uses one neutral colour and an overall summary.
     Missing observations remain visible as gaps in both paths and summaries.
+
+    Parameters
+    ----------
+    data : TrajectoryData
+        Raw prepared trajectories returned by ``prep_data``.
+    feature_cols : sequence of str or None, optional
+        Features to plot. None or an empty sequence selects all features.
+    cutoff : float or None, optional
+        Absolute time overriding the prepared split for display. Observations
+        before this time use solid lines; later ones use dashed lines.
+        If None, use each trajectory's prepared cutoff index and display
+        the stored absolute cutoff or median first-forecast time.
+    max_trajectories : int or None, optional
+        Plot only the first this many trajectories. None selects all.
+
+    Returns
+    -------
+    dict of str to tuple
+        Mapping from feature name to ``(figure, axes)``, each a Matplotlib
+        figure and axes pair. Figures are created without calling ``show``.
+
+    Raises
+    ------
+    TypeError
+        If ``data`` is not a ``TrajectoryData`` instance.
+    ValueError
+        If a requested feature is unknown.
     """
     if not isinstance(data, TrajectoryData):
         raise TypeError("data must be returned by prep_data")
@@ -213,11 +240,39 @@ def plot_predicted_trajectories(
     predictions, *, color_by="auto", max_trajectories_per_group=3,
     show_observed=True,
 ):
-    """Plot forecasts, choosing a meaningful default grouping for the model phase.
+    """Plot forecasts with grouping chosen from the model phase.
 
     Pretraining results use ground-truth labels when available and a neutral
-    color otherwise. Results after GMM fitting default to cluster colors.
+    colour otherwise. Results after GMM fitting default to cluster colours.
     Pass ``color_by="cluster"``, ``"ground_truth"``, or ``None`` to override.
+
+    Parameters
+    ----------
+    predictions : PredictionResult
+        Predictions returned by ``predict``, including truth and masks.
+    color_by : {'auto', 'cluster', 'ground_truth', None}, optional
+        Grouping for line colours. Default is ``'auto'``; None uses one
+        neutral colour. An unspecified model phase defaults to clusters.
+    max_trajectories_per_group : int, optional
+        Maximum trajectories shown in each colour group. Default is 3.
+    show_observed : bool, optional
+        Include context values in dotted truth paths and show the shared
+        cutoff line when available. Default is True. Target truth is always
+        drawn; predictions use solid lines at observed target entries.
+
+    Returns
+    -------
+    dict of str to tuple
+        Mapping from feature name to a Matplotlib ``(figure, axes)`` pair.
+        Empty predictions produce an empty dictionary. Figures are created
+        without calling ``show``.
+
+    Raises
+    ------
+    TypeError
+        If ``predictions`` is not a ``PredictionResult`` instance.
+    ValueError
+        If ``color_by`` is unsupported.
     """
     if not isinstance(predictions, PredictionResult):
         raise TypeError("predictions must be returned by predict")
@@ -284,7 +339,44 @@ def plot_predicted_trajectories(
 
 
 def plot_latent_space(model, loaders, *, color_by="cluster", device="cpu"):
-    """Plot PCA projection of posterior means with optional group coloring."""
+    """Plot a two-dimensional PCA projection of training posterior means.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model providing ``encode`` and, for cluster colouring, ``pred_cluster``.
+    loaders : DataLoaders or dict
+        Prepared loaders or a dictionary with a ``'train'`` loader. Batches
+        must use feature scaling consistent with model training.
+    color_by : {'cluster', 'ground_truth', None}, optional
+        Colour points by predicted cluster or encoded label, or use one
+        neutral colour. Default is ``'cluster'``. Missing labels (-1) are
+        displayed as unlabelled.
+    device : str or torch.device, optional
+        Device used to encode trajectories. Default is ``'cpu'``.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Created figure, without calling ``show``.
+    ax : matplotlib.axes.Axes
+        Axes containing the projected posterior means.
+    projection : sklearn.decomposition.PCA
+        Fitted two-component PCA transformer.
+
+    Raises
+    ------
+    TypeError
+        If the loader container is unsupported.
+    ValueError
+        If ``color_by`` is unsupported, training data is empty, or fewer
+        than two trajectories or latent dimensions are available for PCA.
+
+    Notes
+    -----
+    Move the model to ``device`` and leave it in evaluation mode. Encode
+    without gradient recording.
+    """
     from .training import _get_loaders
     train_loader, _ = _get_loaders(loaders)
     if color_by not in {None, "cluster", "ground_truth"}:
@@ -331,7 +423,31 @@ def plot_latent_space(model, loaders, *, color_by="cluster", device="cpu"):
 
 
 def plot_training_loss(history, *, metrics=None):
-    """Plot per-epoch metrics, restricting pretraining to reconstruction loss."""
+    """Plot per-epoch metrics, restricting pretraining to reconstruction loss.
+
+    Parameters
+    ----------
+    history : TrainingResult or list of dict
+        Training result or non-empty epoch records with an ``'epoch'`` key.
+        The result's phase, or the first record's ``'phase'``, determines
+        whether to restrict plotting to reconstruction loss.
+    metrics : sequence of str or None, optional
+        Metric keys to plot. None or an empty sequence selects loss keys
+        from the first record. For pretraining, retain only keys ending in
+        ``'reconstruction_loss'``. Missing epoch values are drawn as gaps.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Created figure, without calling ``show``.
+    ax : matplotlib.axes.Axes
+        Axes containing one line per selected metric.
+
+    Raises
+    ------
+    ValueError
+        If history is empty or no requested metrics remain after filtering.
+    """
     phase = getattr(history, "phase", None)
     if hasattr(history, "history"):
         history = history.history
