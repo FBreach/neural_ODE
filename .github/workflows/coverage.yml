@@ -2,7 +2,7 @@ name: Codecov workflow
 
 on:
   push:
-    branches: ["main", "shona"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
@@ -12,10 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.14
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.14"
           cache: pip
           cache-dependency-path: pyproject.toml
 
