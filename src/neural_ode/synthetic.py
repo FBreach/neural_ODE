@@ -115,11 +115,68 @@ def generate_synthetic_data(
     missing_rate: float = 0.0,
     seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Generate train and test DataFrames matching the synthetic-data CLI.
+    """Generate labelled synthetic train and test trajectories in memory.
 
-    Returns ``(train_df, test_df)`` with columns ``trajectory_id``, ``time``,
-    ``feature_0`` through ``feature_{n_features-1}``, and ``label``. Missing
-    feature values are represented by ``NaN``. No files are written.
+    Parameters
+    ----------
+    n_train : int, optional
+        Number of training trajectories. Default is 300; must be positive.
+    n_test : int, optional
+        Number of test trajectories. Default is 100; must be positive.
+    n_classes : int, optional
+        Number of trajectory classes. Default is 3; must be at least 2.
+    n_features : int, optional
+        Number of feature columns. Default is 3; must be positive.
+    length : int, optional
+        Observations per trajectory when variable lengths are disabled.
+        Default is 50; must be at least 2 even when variable lengths are used.
+    irregularity : float, optional
+        Non-negative coefficient of variation of sampled gamma time gaps
+        before rescaling to ``time_end``. Zero gives evenly spaced times.
+        Default is 0.0.
+    noise : float, optional
+        Non-negative standard deviation of additive Gaussian feature noise.
+        Default is 0.1.
+    min_length : int or None, optional
+        Inclusive minimum observations per trajectory, at least 2. Set with
+        ``max_length`` to enable uniformly sampled variable lengths.
+    max_length : int or None, optional
+        Inclusive maximum observations, at least ``min_length``. Both bounds
+        default to None, which uses ``length``.
+    time_end : float, optional
+        Positive final observation time. All trajectories start at zero.
+        Default is 5.0.
+    class_variability : float, optional
+        Non-negative variation in amplitude, frequency and phase within each
+        class. Default is 0.08.
+    missing_rate : float, optional
+        Independent probability of replacing a feature value with NaN.
+        Must lie in ``[0, 1)``. Default is 0.0.
+    seed : int, optional
+        Seed used to derive independent train and test random generators.
+        Default is 42.
+
+    Returns
+    -------
+    train_df : pandas.DataFrame
+        Long-format training data with columns ``trajectory_id``, ``time``,
+        ``feature_0`` through ``feature_{n_features-1}``, and ``label``.
+        Identifiers start with ``'train_'``; labels are integers from zero
+        to ``n_classes - 1``, with class counts differing by at most one.
+    test_df : pandas.DataFrame
+        Test data with the same schema and ``'test_'`` identifiers. Missing
+        feature values in both tables are NaN.
+
+    Raises
+    ------
+    ValueError
+        If counts, lengths, time span, variability or missing rate are invalid,
+        or only one variable-length bound is supplied.
+
+    Notes
+    -----
+    Features combine class-dependent sinusoidal signals and a linear trend.
+    No files are written.
     """
     if n_train < 1 or n_test < 1:
         raise ValueError("n_train and n_test must be positive")
