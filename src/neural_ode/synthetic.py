@@ -177,6 +177,7 @@ def generate_synthetic_data(
     -----
     Features combine class-dependent sinusoidal signals and a linear trend.
     No files are written.
+
     """
     if n_train < 1 or n_test < 1:
         raise ValueError("n_train and n_test must be positive")

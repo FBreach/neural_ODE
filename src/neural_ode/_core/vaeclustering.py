@@ -46,6 +46,7 @@ def validate_adni_feature_names(feature_names):
 @dataclass
 class Results:
     """Loss output returned by VAEClustering training/evaluation steps."""
+
     loss: torch.Tensor | None = None
     likelihood: torch.Tensor | None = None
     mse: torch.Tensor | None = None
@@ -289,11 +290,14 @@ class VAEClustering(nn.Module):
         return torch.mean(log_density_data)
 
     def q_c_given_z(self, z):
-        """
+        """Compute cluster probabilities and log probabilities given latent states.
+
         z: (B,D)
-        returns:
+
+        Returns:
         log_qc: (B,K)
         qc:     (B,K)
+
         """
         if z.dim() == 1:
             z = z.unsqueeze(0)
@@ -387,11 +391,13 @@ class VAEClustering(nn.Module):
         mode=None,
         use_sampling=True,
     ):
-        """
+        """Return reconstruction statistics and latent trajectory information.
+
         Returns:
             recon_m: _description_
             recon_std:
             all_extra_info:  "first_point": (first_point_mu, first_point_std, first_point_enc), "latent_traj": sol_y.detach(),
+
         """
         pass
 
@@ -707,14 +713,16 @@ class VAEClustering(nn.Module):
 
     @torch.no_grad()
     def init_prior_from_gmm(self, centers: np.ndarray, sigma2: np.ndarray, weights: np.ndarray):
-        """
-        Initialize model.prior_mu, model.log_prior_var, model.log_pi
+        """Initialize the prior from a diagonal-covariance GMM.
+
+        Set model.prior_mu, model.log_prior_var, and model.log_pi
         from a diagonal-covariance GMM fitted on encoder means μ(x).
 
         Args:
             centers:  (K,D) numpy array of GMM component means
             sigma2:   (K,D) numpy array of diagonal GMM component variances
             weights:  (K,) numpy array of GMM component weights
+
         """
         device = self.prior_mu.device
         # Get latent spaces
@@ -775,8 +783,7 @@ def sample_latent_space(model: VAEClustering, train_loader, return_pred=False, a
 
 @torch.no_grad()
 def kmeans(Z, gt_labels, K=4):
-    """
-    Run KMeans on Z (μ(x)), compare cluster labels to ground truth, and plot:
+    """Run KMeans on Z (μ(x)), compare cluster labels to ground truth, and plot.
 
       - left:  latent space colored by ground-truth labels
       - right: latent space colored by KMeans-predicted labels
@@ -787,6 +794,7 @@ def kmeans(Z, gt_labels, K=4):
         Z         : torch.Tensor or np.ndarray, shape (N,D)
         gt_labels : 1D array-like of ints, shape (N,)
         K         : number of clusters for KMeans
+
     """
     Z_np = Z.numpy(force=True)
 
@@ -802,14 +810,16 @@ def kmeans(Z, gt_labels, K=4):
 
 @torch.no_grad()
 def init_gmm_from_kmeans(model, centers, device="cuda", sigma2=0.05):
-    """
-    Initialize model.prior_mu, model.log_prior_var, model.log_pi
-    from KMeans centers on μ(x).
+    """Initialize the prior from KMeans centers on μ(x).
+
+    Set model.prior_mu, model.log_prior_var, and model.log_pi.
 
     Args:
         model:    LatentODE_VaDE instance
         centers:  (K,D) numpy array from KMeans.cluster_centers_
+        device:   device on which to initialize the model
         sigma2:   scalar variance for all dims/clusters
+
     """
     # Get latent spaces
     model.to(device)
