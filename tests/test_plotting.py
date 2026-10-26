@@ -20,6 +20,21 @@ def sample_frame():
         "label": [0] * 3 + [1] * 3 + [0] * 3 + [1] * 3,
     })
 
+def _irregular_frame():
+    times_by_id = {
+    "a": [0, 1, 2],
+    "b": [0, 2, 5],
+    "c": [0, 4, 8],
+    "d": [0, 6, 12],
+    }
+    rows = []
+    for trajectory_id, times in times_by_id.items():
+        rows.extend(
+    {"id": trajectory_id, "time": time, "x": index}
+    for index, time in enumerate(times)
+    )
+    return pd.DataFrame(rows)
+
 
 def test_prep_data_cutoff_masks_and_labels():
     data = prep_data(sample_frame(), feature_cols=["x", "y"], label_col="label",
