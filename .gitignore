@@ -3,6 +3,8 @@
 *.egg-info/
 build/
 dist/
+.snakemake/
+results/
 docs/_build/
 *.xml
 

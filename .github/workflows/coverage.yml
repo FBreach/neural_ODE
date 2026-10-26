@@ -27,7 +27,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install .[dev]
+          python -m pip install '.[dev,workflow]'
 
       - name: Lint with ruff
         run: |
