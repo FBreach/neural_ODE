@@ -18,9 +18,6 @@ __pycache__/
 
 # notebook
 *.ipynb
-<<<<<<< HEAD
 
 # IDE
 *.vscode/
-=======
->>>>>>> b014f31ec635b78f331eeb75f124fca6264397b0
