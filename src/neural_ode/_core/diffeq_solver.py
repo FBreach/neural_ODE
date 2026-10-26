@@ -24,9 +24,7 @@ class DiffeqSolver(nn.Module):
         self.odeint_atol = odeint_atol
 
     def forward(self, first_point, time_steps_to_predict, backwards = False):
-        """
-        # Decode the trajectory through ODE Solver
-        """
+        """Decode the trajectory through the ODE solver."""
         n_traj_samples, n_traj = first_point.size()[0], first_point.size()[1]
         #n_dims = first_point.size()[-1]
 
@@ -42,8 +40,7 @@ class DiffeqSolver(nn.Module):
 
     def sample_traj_from_prior(self, starting_point_enc, time_steps_to_predict, 
         n_traj_samples = 1):
-        """
-        # Decode the trajectory through ODE Solver using samples from the prior
+        """Decode the trajectory through the ODE solver using samples from the prior.
 
         time_steps_to_predict: time steps at which we want to sample the new trajectory
         """
@@ -125,9 +122,7 @@ class DiffeqSolverParallel(DiffeqSolver):
         return torch.stack(out, -2)
         
     def forward(self, first_point, time_steps_to_predict, backwards = False):
-        """
-        # Decode the trajectory through ODE Solver
-        """
+        """Decode the trajectory through the ODE solver."""
         n_traj_samples, n_traj = first_point.size()[0], first_point.size()[1]
 
         pred_y = self.ode_method(first_point, time_steps_to_predict)

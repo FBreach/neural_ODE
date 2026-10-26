@@ -47,6 +47,7 @@ def create_model(input_dim, model_config=None):
     ------
     ValueError
         If the model name, solver method or network configuration is invalid.
+
     """
     cfg = to_plain_dict(model_config or {})
     return create_LatentODE_model(

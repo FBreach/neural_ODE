@@ -31,6 +31,7 @@ class Trajectory:
     cutoff_index : int or None, optional
         Index of the first forecast observation. If ``None``, all observations
         are used as both context and reconstruction targets.
+
     """
 
     id: Any
@@ -57,6 +58,7 @@ class TrajectoryData:
         Absolute time or context fraction used to split each trajectory.
     cutoff_mode : {'time', 'fraction'}, optional
         Interpretation of ``cutoff``. Default is ``'time'``.
+
     """
 
     trajectories: list[Trajectory]
@@ -72,6 +74,7 @@ class TrajectoryData:
         -------
         int
             Number of stored trajectories.
+
         """
         return len(self.trajectories)
 
@@ -101,6 +104,7 @@ class DataLoaders:
         Absolute time or context fraction used to prepare the trajectories.
     cutoff_mode : {'time', 'fraction'}, optional
         Interpretation of ``cutoff``. Default is ``'time'``.
+
     """
 
     train: DataLoader
@@ -165,6 +169,7 @@ def prep_data(
         If columns, times, features or labels are invalid, ID/time pairs are
         duplicated, no trajectories exist, or a cutoff cannot produce a
         valid context/forecast split.
+
     """
     frame = pd.read_csv(csv_path) if isinstance(csv_path, (str, Path)) else csv_path.copy()
     if not isinstance(frame, pd.DataFrame):
@@ -349,6 +354,7 @@ def prep_batches(
     -----
     Input trajectories are not modified. Each loader carries its scaling
     metadata for use by ``evaluate_performance``.
+
     """
     if not isinstance(data, TrajectoryData):
         raise TypeError("data must be returned by prep_data")

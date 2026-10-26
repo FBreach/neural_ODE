@@ -12,10 +12,7 @@ from . import utils
 
 class ODEFunc(nn.Module):
 	def __init__(self, input_dim, latent_dim, ode_func_net, time_dependent=True, device=None):
-		"""
-		input_dim: dimensionality of the input
-		latent_dim: dimensionality used for ODE. Analog of a continous latent state
-		"""
+		"""Initialize the ODE function with input and latent state dimensions."""
 		super(ODEFunc, self).__init__()
 
 		self.input_dim = input_dim
@@ -25,12 +22,7 @@ class ODEFunc(nn.Module):
 		self.gradient_net = ode_func_net
 
 	def forward(self, t_local, y, backwards = False):
-		"""
-		Perform one step in solving ODE. Given current data point y and current time point t_local, returns gradient dy/dt at this time point
-
-		t_local: current time point
-		y: value at the current time point
-		"""
+		"""Return the gradient dy/dt for state y at time t_local."""
 		grad = self.get_ode_gradient_nn(t_local, y)
 		if backwards:
 			grad = -grad
@@ -56,10 +48,7 @@ class ODEFunc(nn.Module):
 		return t_feature.expand(*y.shape[:-1], 1)
 
 	def sample_next_point_from_prior(self, t_local, y):
-		"""
-		t_local: current time point
-		y: value at the current time point
-		"""
+		"""Return the prior ODE gradient for state y at time t_local."""
 		return self.get_ode_gradient_nn(t_local, y)
 
 #####################################################################################################
@@ -67,10 +56,7 @@ class ODEFunc(nn.Module):
 class ODEFunc_w_Poisson(ODEFunc):
 	def __init__(self, input_dim, latent_dim, ode_func_net,
 		lambda_net, device = torch.device("cpu")):
-		"""
-		input_dim: dimensionality of the input
-		latent_dim: dimensionality used for ODE. Analog of a continous latent state
-		"""
+		"""Initialize the ODE function with input and latent state dimensions."""
 		super(ODEFunc_w_Poisson, self).__init__(
 			input_dim,
 			latent_dim,
