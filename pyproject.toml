@@ -21,7 +21,6 @@ dependencies = [
 [project.optional-dependencies]
 workflow = [
   "snakemake>=9,<10",
-  "graphviz-0.21"
 ]
 dev = [
   "pytest",
