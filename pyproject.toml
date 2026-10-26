@@ -17,6 +17,12 @@ dependencies = [
   "torchdiffeq>=0.2.3",
 ]
 
+[project.optional-dependencies]
+docs = [
+  "sphinx>=8.2,<9",
+  "sphinx-rtd-theme>=3,<4",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["neural_ode*"]

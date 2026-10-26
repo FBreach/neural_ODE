@@ -23,6 +23,23 @@ from .data import DataLoaders, TrajectoryData, prep_batches
 
 @dataclass
 class TrainingResult:
+    """Store a trained model and its per-epoch optimisation history.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model restored to the best validation loss, or training loss if no
+        validation loader was supplied. This is the model trained in place.
+    history : list of dict
+        One record per epoch, containing ``epoch``, ``phase``, ``kl_coef``
+        and ``train_loss``, ``train_reconstruction_loss``, ``train_kl_loss``.
+        Validation runs also include the corresponding ``val_`` keys.
+    checkpoint_path : pathlib.Path or None, optional
+        Best-model checkpoint file, or None if no checkpoint was written.
+    phase : {'pretrain', 'finetune'} or None, optional
+        Training phase that produced the result.
+    """
+
     model: torch.nn.Module
     history: list[dict]
     checkpoint_path: Path | None = None
@@ -31,12 +48,50 @@ class TrainingResult:
 
 @dataclass
 class GMMResult:
+    """Store the model and fitted mixture used to initialise its prior.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Input model with its mixture prior updated in place.
+    estimator : sklearn.mixture.GaussianMixture
+        Fitted diagonal-covariance mixture of training posterior means.
+    """
+
     model: torch.nn.Module
     estimator: GaussianMixture
 
 
 @dataclass
 class PredictionTrajectory:
+    """Store unpadded predictions and context for one trajectory.
+
+    Parameters
+    ----------
+    id : object
+        Original trajectory identifier.
+    times : torch.Tensor of shape (n_targets,)
+        Target observation times.
+    truth : torch.Tensor of shape (n_targets, n_features)
+        Target feature values in the scale supplied to the model.
+    prediction : torch.Tensor of shape (n_targets, n_features)
+        Deterministic reconstructed or forecast feature values on the CPU.
+    mask : torch.Tensor of shape (n_targets, n_features)
+        Mask indicating observed target values.
+    cluster : int
+        Model-assigned cluster index.
+    label : int or None
+        Encoded ground-truth label, or None when unavailable.
+    observed_times : torch.Tensor of shape (n_observed,) or None, optional
+        Context observation times.
+    observed_values : torch.Tensor of shape (n_observed, n_features) or None, optional
+        Context values in the same scale as ``truth``.
+    observed_mask : torch.Tensor of shape (n_observed, n_features) or None, optional
+        Boolean context observation mask.
+    cutoff_time : float or None, optional
+        Last context time for extrapolation, or None for reconstruction.
+    """
+
     id: object
     times: torch.Tensor
     truth: torch.Tensor
@@ -52,6 +107,21 @@ class PredictionTrajectory:
 
 @dataclass
 class PredictionResult:
+    """Collect trajectory predictions and shared plotting metadata.
+
+    Parameters
+    ----------
+    trajectories : list of PredictionTrajectory
+        Predictions in loader iteration order.
+    feature_names : list of str or None, optional
+        Feature names, when available from the prediction input.
+    cutoff_time : float or None, optional
+        Shared absolute cutoff, or the median last-context time when no
+        absolute cutoff is available. None if no trajectory has a cutoff.
+    phase : {'pretrain', 'clustered', 'finetune'} or None, optional
+        Model phase at prediction time, used for automatic plot colouring.
+    """
+
     trajectories: list[PredictionTrajectory]
     feature_names: list[str] | None = None
     cutoff_time: float | None = None
@@ -142,7 +212,52 @@ def _run_phase(model, loaders, *, phase, epochs, learning_rate, weight_decay, de
 
 def train_pretrain(loaders, *, model_config=None, epochs=100, learning_rate=1e-3,
                    weight_decay=0.0, device="cpu", seed=0, checkpoint_dir=None):
-    """Train model reconstruction objective; create model from config if supplied."""
+    """Pretrain the reconstruction objective with a fixed mixture prior.
+
+    Parameters
+    ----------
+    loaders : DataLoaders or dict
+        Prepared loaders, or a dictionary with ``'train'`` and optional
+        ``'val'`` loaders yielding dictionaries in the ``prep_batches`` format.
+    model_config : torch.nn.Module, mapping or None, optional
+        Model to train in place, or configuration passed to ``create_model``.
+        For a configuration, infer the feature count from the training
+        dataset's first sample. Although the default is None, a model or
+        configuration must be supplied.
+    epochs : int, optional
+        Positive number of training epochs. Default is 100.
+    learning_rate : float, optional
+        Positive Adamax learning rate. Default is ``1e-3``.
+    weight_decay : float, optional
+        Non-negative Adamax weight decay. Default is 0.0.
+    device : str or torch.device, optional
+        Device used for training. Default is ``'cpu'``.
+    seed : int, optional
+        PyTorch seed set before model construction and training. Default is 0.
+    checkpoint_dir : str, pathlib.Path or None, optional
+        Directory for ``best_pretrain.pt``. Create the directory if needed
+        and overwrite this file when loss improves. None disables file output.
+
+    Returns
+    -------
+    TrainingResult
+        Model restored to its best epoch, history and optional checkpoint path.
+        Select the best epoch by validation loss when available, otherwise
+        training loss.
+
+    Raises
+    ------
+    TypeError
+        If the loader container is unsupported.
+    ValueError
+        If ``model_config`` is None or optimisation parameters are invalid.
+
+    Notes
+    -----
+    Move the model to ``device``, freeze its mixture-prior parameters and use
+    a zero KL coefficient. Save scaling metadata when given ``DataLoaders``.
+    Print training progress and mark the resulting model phase ``'pretrain'``.
+    """
     torch.manual_seed(seed)
     train_loader, _ = _get_loaders(loaders)
     model = model_config if isinstance(model_config, torch.nn.Module) else None
@@ -157,7 +272,44 @@ def train_pretrain(loaders, *, model_config=None, epochs=100, learning_rate=1e-3
 
 
 def train_fit_gmm(model, loaders, *, n_components=None, seed=0, reg_covar=1e-6):
-    """Fit a diagonal Gaussian mixture to training posterior means."""
+    """Fit a diagonal Gaussian mixture to training posterior means.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Pretrained model providing ``encode``, ``k`` and
+        ``init_prior_from_gmm``. Its prior is updated in place.
+    loaders : DataLoaders or dict
+        Prepared loaders or a dictionary with a ``'train'`` loader.
+        Use feature scaling consistent with model training.
+    n_components : int or None, optional
+        Number of mixture components. Defaults to ``model.k.item()`` and
+        must match the model's prior dimensions.
+    seed : int, optional
+        Random seed for scikit-learn mixture fitting. Default is 0.
+    reg_covar : float, optional
+        Non-negative regularisation added to diagonal covariances.
+        Default is ``1e-6``.
+
+    Returns
+    -------
+    GMMResult
+        Updated input model and fitted scikit-learn estimator.
+
+    Raises
+    ------
+    TypeError
+        If the loader container is unsupported.
+    ValueError
+        If the component count exceeds the training trajectory count or the
+        data or mixture parameters are invalid for fitting.
+
+    Notes
+    -----
+    Encode on the model's current device in evaluation mode. Fit with ten
+    initialisations, copy component means, variances and weights into the
+    model prior, and mark its phase ``'clustered'``.
+    """
     train_loader, _ = _get_loaders(loaders)
     device = next(model.parameters()).device
     means = []
@@ -181,7 +333,53 @@ def train_fit_gmm(model, loaders, *, n_components=None, seed=0, reg_covar=1e-6):
 def train_finetune(model, loaders, *, epochs=100, learning_rate=1e-3, weight_decay=0.0,
                    kl_coef=1.0, kl_warmup_epochs=0, device="cpu", seed=0,
                    checkpoint_dir=None):
-    """Fine-tune mixture-prior VAE objective after GMM initialization."""
+    """Fine-tune the mixture-prior VAE objective after GMM initialisation.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model to train in place, normally returned by ``train_fit_gmm``.
+    loaders : DataLoaders or dict
+        Prepared loaders, or a dictionary with ``'train'`` and optional
+        ``'val'`` loaders in the ``prep_batches`` format.
+    epochs : int, optional
+        Positive number of training epochs. Default is 100.
+    learning_rate : float, optional
+        Positive Adamax learning rate. Default is ``1e-3``.
+    weight_decay : float, optional
+        Non-negative Adamax weight decay. Default is 0.0.
+    kl_coef : float, optional
+        Target weight of the KL term. Default is 1.0.
+    kl_warmup_epochs : int, optional
+        Epochs over which to increase the KL weight linearly, starting at
+        ``kl_coef / kl_warmup_epochs``. Zero disables warm-up. Default is 0.
+    device : str or torch.device, optional
+        Device used for training. Default is ``'cpu'``.
+    seed : int, optional
+        PyTorch random seed set before training. Default is 0.
+    checkpoint_dir : str, pathlib.Path or None, optional
+        Directory for ``best_finetune.pt``. Create the directory if needed
+        and overwrite this file when loss improves. None disables file output.
+
+    Returns
+    -------
+    TrainingResult
+        Model restored to its best validation loss, or training loss without
+        validation, together with history and an optional checkpoint path.
+
+    Raises
+    ------
+    TypeError
+        If the loader container is unsupported.
+    ValueError
+        If epochs, learning rate or weight decay are invalid.
+
+    Notes
+    -----
+    Move the model to ``device`` and enable gradients for mixture-prior
+    parameters. Save scaling metadata when given ``DataLoaders``, print
+    progress, and mark the resulting model phase ``'finetune'``.
+    """
     torch.manual_seed(seed)
     return _run_phase(model, loaders, phase="finetune", epochs=epochs,
                       learning_rate=learning_rate, weight_decay=weight_decay,
@@ -190,7 +388,36 @@ def train_finetune(model, loaders, *, epochs=100, learning_rate=1e-3, weight_dec
 
 
 def predict(model, data_or_loader, *, device="cpu"):
-    """Forecast each trajectory and return values with IDs and optional labels."""
+    """Reconstruct or forecast trajectories with IDs, masks and labels.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model providing ``get_reconstruction`` and ``pred_cluster``.
+    data_or_loader : TrajectoryData, DataLoaders or iterable of dict
+        Raw prepared trajectories, a loader bundle, or batches in the
+        ``prep_batches`` format. For a bundle, use the first available split
+        in test, validation, training order. Raw trajectories are transformed
+        using the model's stored training scaling; loader batches must already
+        use that scale.
+    device : str or torch.device, optional
+        Inference device. Default is ``'cpu'``.
+
+    Returns
+    -------
+    PredictionResult
+        Unpadded deterministic predictions, target values and context in the
+        model's input scale; scaling is not inverted. Feature names are
+        available for ``TrajectoryData`` and ``DataLoaders`` inputs. The shared
+        cutoff is the supplied absolute cutoff, or the median last-context
+        time for trajectories with forecast splits.
+
+    Notes
+    -----
+    Move the model to ``device`` and leave it in evaluation mode. Disable
+    gradient recording and latent sampling. Without a cutoff, reconstruct
+    the complete trajectory rather than forecasting a held-out segment.
+    """
     feature_names = None
     cutoff_time = None
     if isinstance(data_or_loader, TrajectoryData):
@@ -285,12 +512,41 @@ def _batch_values_in_model_scale(values, mask, source_stats, model_stats):
 def evaluate_performance(model, test_loader, *, device="cpu"):
     """Evaluate masked forecast error and available clustering metrics.
 
-    Returns a fixed-key dictionary containing forecast ``mse``; supervised
-    clustering metrics ``nmi``, ``ari``, and Hungarian-matched ``acc``; and
-    label-free latent cluster scores ``silhouette``, ``davies_bouldin``, and
-    ``calinski_harabasz``. Clustering metrics are ``None`` until GMM fitting
-    has completed, and any inapplicable score is also ``None``. The loader is
-    consumed directly; it need not be wrapped in a ``DataLoaders`` object.
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model providing deterministic ``get_reconstruction`` and, after GMM
+        fitting, ``encode`` and ``pred_cluster`` methods.
+    test_loader : iterable of dict
+        Evaluation batches in the ``prep_batches`` format, typically
+        ``DataLoaders.test`` or a separately prepared loader. Consume this
+        loader directly rather than passing a ``DataLoaders`` bundle.
+    device : str or torch.device, optional
+        Evaluation device. Default is ``'cpu'``.
+
+    Returns
+    -------
+    dict of str to float or None
+        Fixed keys ``mse``, ``nmi``, ``ari``, ``acc``, ``silhouette``,
+        ``davies_bouldin`` and ``calinski_harabasz``. MSE pools squared errors
+        over all finite, observed target values in model training scale.
+        It is None if no valid targets exist. Clustering scores are None
+        until the model phase is ``'clustered'`` or ``'finetune'``.
+        NMI, ARI and Hungarian-matched accuracy use only non-negative labels;
+        they are None without labels. Internal cluster scores use posterior
+        means and are None for invalid or degenerate cluster configurations.
+
+    Raises
+    ------
+    ValueError
+        If loader or model scaling metadata has the wrong feature count.
+
+    Notes
+    -----
+    Convert loader values to model training scale when both sets of scaling
+    metadata are available; otherwise use values as supplied. Move the model
+    to ``device`` and leave it in evaluation mode. Disable gradient recording
+    and latent sampling.
     """
     metric_names = (
         "mse", "nmi", "ari", "acc", "silhouette", "davies_bouldin",

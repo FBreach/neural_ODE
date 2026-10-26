@@ -87,6 +87,21 @@ pretraining when labels are available, and a neutral color otherwise. After
 GMM fitting it defaults to cluster colors; pass `color_by=None` to always use
 one neutral color.
 
+## Documentation
+
+The Sphinx documentation includes a getting-started guide and an API reference
+generated from the NumPy-style docstrings. Build it with Python 3.11 or later:
+
+```sh
+python -m pip install -e ".[docs]"
+python -m sphinx -b html -W --keep-going docs docs/_build/html
+```
+
+Open `docs/_build/html/index.html` to view the result. See
+[`docs/documentation.rst`](docs/documentation.rst) for Read the Docs activation
+steps. The repository includes `.readthedocs.yaml`; hosting starts after the
+repository is connected to a Read the Docs project.
+
 ## Development
 
 Run the focused package tests with:
