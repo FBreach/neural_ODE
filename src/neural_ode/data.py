@@ -14,6 +14,25 @@ from torch.utils.data import DataLoader, Dataset
 
 @dataclass
 class Trajectory:
+    """Store one time-ordered trajectory and its observation mask.
+
+    Parameters
+    ----------
+    id : object
+        Original trajectory identifier.
+    times : torch.Tensor of shape (n_times,)
+        Observation times in ascending order.
+    values : torch.Tensor of shape (n_times, n_features)
+        Feature values, with missing entries filled with zero by ``prep_data``.
+    mask : torch.Tensor of shape (n_times, n_features)
+        Boolean mask indicating observed feature values.
+    label : int or None, optional
+        Encoded trajectory label, or ``None`` for an unlabelled trajectory.
+    cutoff_index : int or None, optional
+        Index of the first forecast observation. If ``None``, all observations
+        are used as both context and reconstruction targets.
+    """
+
     id: Any
     times: torch.Tensor
     values: torch.Tensor
@@ -24,6 +43,22 @@ class Trajectory:
 
 @dataclass
 class TrajectoryData:
+    """Collect trajectories with their feature, label and cutoff metadata.
+
+    Parameters
+    ----------
+    trajectories : list of Trajectory
+        Prepared trajectories.
+    feature_names : list of str
+        Feature names in tensor column order.
+    label_values : list of object or None, optional
+        Original labels indexed by their encoded integer labels.
+    cutoff : float or None, optional
+        Absolute time or context fraction used to split each trajectory.
+    cutoff_mode : {'time', 'fraction'}, optional
+        Interpretation of ``cutoff``. Default is ``'time'``.
+    """
+
     trajectories: list[Trajectory]
     feature_names: list[str]
     label_values: list[Any] | None = None
@@ -31,11 +66,43 @@ class TrajectoryData:
     cutoff_mode: str = "time"
 
     def __len__(self):
+        """Return the number of trajectories.
+
+        Returns
+        -------
+        int
+            Number of stored trajectories.
+        """
         return len(self.trajectories)
 
 
 @dataclass
 class DataLoaders:
+    """Bundle trajectory loaders and their shared preparation metadata.
+
+    Parameters
+    ----------
+    train : torch.utils.data.DataLoader
+        Training batches.
+    val : torch.utils.data.DataLoader or None
+        Validation batches, or ``None`` when no validation split is requested.
+    test : torch.utils.data.DataLoader or None
+        Test batches, or ``None`` when no test split is requested.
+    mean : torch.Tensor of shape (n_features,)
+        Training feature means used for scaling, or zeros without scaling.
+    std : torch.Tensor of shape (n_features,)
+        Training feature standard deviations used for scaling, or ones
+        without scaling.
+    feature_names : list of str
+        Feature names in tensor column order.
+    label_values : list of object or None
+        Original labels indexed by their encoded integer labels.
+    cutoff : float or None, optional
+        Absolute time or context fraction used to prepare the trajectories.
+    cutoff_mode : {'time', 'fraction'}, optional
+        Interpretation of ``cutoff``. Default is ``'time'``.
+    """
+
     train: DataLoader
     val: DataLoader | None
     test: DataLoader | None
@@ -57,7 +124,48 @@ def prep_data(
     cutoff=None,
     cutoff_mode="time",
 ) -> TrajectoryData:
-    """Read long-format CSV into one masked tensor pair per trajectory."""
+    """Read long-format data into time-ordered, masked trajectories.
+
+    Parameters
+    ----------
+    csv_path : str, pathlib.Path or pandas.DataFrame
+        CSV file or in-memory table with one row per trajectory observation.
+        A supplied DataFrame is copied.
+    id_col : str, optional
+        Trajectory identifier column. Default is ``'id'``.
+    time_col : str, optional
+        Numeric observation-time column. Default is ``'time'``.
+    feature_cols : sequence of str or None, optional
+        Feature columns in the desired tensor order. If ``None``, use all
+        columns except the ID, time and specified label columns.
+    label_col : str or None, optional
+        Optional trajectory label column. Non-missing labels must be constant
+        within each trajectory and are encoded as consecutive integers.
+    cutoff : float or None, optional
+        Context/forecast split. For ``'time'``, context includes times less
+        than or equal to this value. For ``'fraction'``, context contains
+        ``ceil(n_times * cutoff)`` observations, clipped to leave at least
+        one context and one forecast observation. If ``None``, reconstruct
+        all observations from the complete trajectory.
+    cutoff_mode : {'time', 'fraction'}, optional
+        Interpretation of ``cutoff``. Default is ``'time'``.
+
+    Returns
+    -------
+    TrajectoryData
+        Trajectories with float32 times and values, Boolean observation masks,
+        and feature and label metadata. Missing feature values become zero
+        with a false mask entry.
+
+    Raises
+    ------
+    TypeError
+        If the input is not a supported table or path.
+    ValueError
+        If columns, times, features or labels are invalid, ID/time pairs are
+        duplicated, no trajectories exist, or a cutoff cannot produce a
+        valid context/forecast split.
+    """
     frame = pd.read_csv(csv_path) if isinstance(csv_path, (str, Path)) else csv_path.copy()
     if not isinstance(frame, pd.DataFrame):
         raise TypeError("csv_path must be a path or pandas DataFrame")
@@ -191,7 +299,57 @@ def prep_batches(
     num_workers=0,
     normalize=False,
 ) -> DataLoaders:
-    """Split by trajectory ID and return padded loaders and train-fit scaling."""
+    """Split trajectories and build padded batches with optional scaling.
+
+    Parameters
+    ----------
+    data : TrajectoryData
+        Trajectories returned by ``prep_data``.
+    batch_size : int, optional
+        Maximum trajectories per batch. Default is 32.
+    val_split : float, optional
+        Fraction reserved for validation. Default is 0.2.
+    test_split : float, optional
+        Fraction reserved for testing. Default is 0.0. Split sizes are rounded;
+        each positive split receives at least one trajectory.
+    shuffle : bool, optional
+        Randomise split membership and training-batch order. Default is True.
+        If False, assign test, validation and training splits in input order.
+    seed : int, optional
+        Seed for split membership and training shuffling. Default is 0.
+    num_workers : int, optional
+        Number of PyTorch loader worker processes. Default is 0.
+    normalize : bool, optional
+        Standardise features using observed values across the complete
+        training trajectories, including forecast observations. Default is
+        False. Standard deviations are clamped to at least ``1e-6``.
+
+    Returns
+    -------
+    DataLoaders
+        Loaders and scaling metadata. Batches are dictionaries containing
+        ``ids``, integer ``labels`` (-1 for missing labels), ``mode``
+        (``'interp'`` or ``'extrap'``), and observed/target lengths.
+        ``observed_data`` and ``observed_mask`` have shape
+        ``(batch, observed_steps, n_features)``; ``data_to_predict`` and
+        ``mask_predicted_data`` have shape
+        ``(batch, target_steps, n_features)``. ``observed_tp`` and
+        ``tp_to_predict`` have matching step counts and a final dimension of
+        one. Padding and missing values have zero masks.
+
+    Raises
+    ------
+    TypeError
+        If ``data`` is not a ``TrajectoryData`` instance.
+    ValueError
+        If batch or worker counts are invalid, split fractions are invalid,
+        or the requested splits leave no training trajectories.
+
+    Notes
+    -----
+    Input trajectories are not modified. Each loader carries its scaling
+    metadata for use by ``evaluate_performance``.
+    """
     if not isinstance(data, TrajectoryData):
         raise TypeError("data must be returned by prep_data")
     if batch_size < 1 or num_workers < 0:

@@ -17,16 +17,24 @@ dependencies = [
   "torchdiffeq>=0.2.3",
   "ipykernel"
 ]
+
 [project.optional-dependencies]
 dev = [
-  "pytest"
+  "pytest",
+  "pytest-cov"
 ]
 docs = [
-  "sphinx"
+  "sphinx>=8.2,<9",
+  "sphinx-rtd-theme>=3,<4",
 ]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["neural_ode*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
