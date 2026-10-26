@@ -23,3 +23,5 @@ __pycache__/
 
 # IDE
 *.vscode/
+/examples/forecast/results/
+/examples/forecast/data/
