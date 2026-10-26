@@ -1,9 +1,16 @@
-__pycache__/
+
 *.py[cod]
 *.egg-info/
 build/
 dist/
-.pytest_cache/
+
 .venv/
 venv/
 .coverage
+
+
+# cache
+.DS_Store
+.pytest_cache/
+__pycache__/
+
