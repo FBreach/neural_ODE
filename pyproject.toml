@@ -19,6 +19,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+workflow = [
+  "snakemake>=9,<10",
+]
 dev = [
   "pytest",
   "pytest-cov",
