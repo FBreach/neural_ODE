@@ -1,0 +1,87 @@
+anaconda-anon-usage @ file:///home/task_178056140078668/croot/anaconda-anon-usage_1780561464840/work
+anaconda-auth @ file:///Users/ec2-user/croot/anaconda-auth_1787915948281/work
+anaconda-channel-guide @ file:///Users/ec2-user/croot/anaconda-channel-guide_1786638238360/work
+anaconda-cli-base @ file:///Users/ec2-user/croot/anaconda-cli-base_1782138618093/work
+annotated-doc @ file:///Users/ec2-user/croot/annotated-doc_1786359531235/work
+annotated-types @ file:///Users/ec2-user/croot/annotated-types_1783680860219/work
+anyio @ file:///Users/ec2-user/croot/anyio_1773134414870/work
+archspec @ file:///Users/ec2-user/croot/archspec_1781703434270/work
+boltons @ file:///Users/ec2-user/buildout/croot/boltons_1759960252148/work
+brotlicffi @ file:///Users/ec2-user/croot/brotlicffi_1786443919534/work
+build @ file:///Users/ec2-user/croot/python-build_1784730364889/work
+certifi @ file:///Users/ec2-user/croot/certifi_1785412583102/work/certifi
+cffi @ file:///Users/ec2-user/croot/cffi_1786696917830/work
+charset-normalizer @ file:///Users/ec2-user/croot/charset-normalizer_1782917471556/work
+click @ file:///Users/ec2-user/croot/click_1781176538993/work
+conda @ file:///Users/ec2-user/croot/conda_1787069000113/work/conda-src
+conda-anaconda-telemetry @ file:///croot/conda-anaconda-telemetry_1755883788794/work
+conda-anaconda-tos @ file:///Users/ec2-user/croot/conda-anaconda-tos_1770231078465/work
+conda-content-trust @ file:///Users/ec2-user/croot/conda-content-trust_1777554201709/work
+conda-libmamba-solver @ file:///home/task_Cr-3rYb_Svu0h_0/croot/conda-libmamba-solver_1784135307254/work/src
+conda-lockfiles @ file:///Users/ec2-user/croot/conda-lockfiles_1783438338416/work
+conda-package-handling @ file:///Users/ec2-user/croot/conda-package-handling_1781731298441/work
+conda-pypi @ file:///Users/ec2-user/croot/conda-pypi_1783082480821/work
+conda-rattler-solver @ file:///Users/ec2-user/croot/conda-rattler-solver_1782413809785/work
+conda-self @ file:///Users/ec2-user/croot/conda-self_1784729173619/work
+conda_index @ file:///Users/ec2-user/croot/conda-index_1782239927325/work
+conda_package_streaming @ file:///Users/ec2-user/croot/conda-package-streaming_1781731229906/work
+coverage==7.16.2
+cryptography @ file:///Users/ec2-user/croot/cryptography-split_1787144930409/work
+distro @ file:///Users/ec2-user/buildout/croot/distro_1759958175746/work
+filelock @ file:///Users/ec2-user/croot/filelock_1787826371899/work
+frozendict @ file:///Users/ec2-user/croot/frozendict_1782910139669/work
+h11 @ file:///opt/miniconda3/conda-bld/h11_1761931258926/work
+httpcore @ file:///Users/ec2-user/buildout/croot/httpcore_1761937127030/work
+httpx @ file:///Users/ec2-user/buildout/croot/httpx_1761937519393/work
+idna @ file:///Users/ec2-user/croot/idna_1780561396088/work
+iniconfig==2.3.1
+installer @ file:///Users/ec2-user/croot/python-installer_1783936171085/work
+jaraco.classes @ file:///Users/ec2-user/buildout/croot/jaraco.classes_1759955035653/work
+jaraco.context @ file:///Users/ec2-user/croot/jaraco.context_1769477838120/work
+jaraco.functools @ file:///Users/ec2-user/buildout/croot/jaraco.functools_1768900620159/work
+Jinja2 @ file:///Users/ec2-user/croot/jinja2_1787826448757/work
+keyring @ file:///Users/ec2-user/buildout/croot/keyring_1765381968545/work
+libmambapy @ file:///Users/ec2-user/croot/mamba-split_1779881319910/work/libmambapy
+markdown-it-py @ file:///Users/ec2-user/croot/markdown-it-py_1787311305162/work
+MarkupSafe @ file:///Users/ec2-user/croot/markupsafe_1782390866030/work
+mdurl @ file:///Users/ec2-user/buildout/croot/mdurl_1759953843084/work
+menuinst @ file:///Users/ec2-user/croot/menuinst_1784297501967/work
+more-itertools @ file:///Users/ec2-user/croot/more-itertools_1775819407045/work
+msgpack @ file:///Users/ec2-user/croot/msgpack-python_1782399383306/work
+packaging==26.3
+pkce @ file:///Users/ec2-user/buildout/croot/pkce_1759958821043/work
+platformdirs @ file:///Users/ec2-user/croot/platformdirs_1785312140815/work
+pluggy @ file:///Users/ec2-user/croot/pluggy_1776972807785/work
+py-rattler @ file:///Users/ec2-user/croot/py-rattler-split_1781273624674/work
+pycosat @ file:///Users/ec2-user/buildout/croot/pycosat_1760012146060/work
+pycparser @ file:///Users/ec2-user/croot/pycparser_1774959675151/work
+pydantic @ file:///Users/ec2-user/croot/pydantic_1778683876317/work
+pydantic-settings @ file:///Users/ec2-user/croot/pydantic-settings_1782389223698/work
+pydantic_core @ file:///Users/ec2-user/croot/pydantic-core_1778676817138/work
+Pygments @ file:///Users/ec2-user/croot/pygments_1775127041396/work
+PyJWT @ file:///Users/ec2-user/croot/pyjwt_1780933951933/work
+pyproject_hooks @ file:///opt/miniconda3/conda-bld/pyproject_hooks_1761732857189/work
+PySocks @ file:///opt/miniconda3/conda-bld/pysocks_1761753010104/work
+pytest==9.1.1
+pytest-cov==7.1.0
+python-dotenv @ file:///Users/ec2-user/croot/python-dotenv_1786024186965/work
+readchar @ file:///Users/ec2-user/croot/readchar_1783505058717/work
+requests @ file:///Users/ec2-user/croot/requests_1780348908794/work
+rich @ file:///Users/ec2-user/croot/rich_1778863378203/work
+ruamel.yaml @ file:///opt/miniconda3/conda-bld/ruamel.yaml_1762535953267/work
+ruamel.yaml.clib @ file:///opt/miniconda3/conda-bld/ruamel.yaml.clib_1762530069475/work
+semver @ file:///opt/miniconda3/conda-bld/semver_1761903026848/work
+setuptools==83.0.0
+shellingham @ file:///opt/miniconda3/conda-bld/shellingham_1761912203994/work
+tomli @ file:///Users/ec2-user/croot/tomli_1768297438584/work
+tomli_w @ file:///croot/tomli-w_1738351312774/work
+tomlkit @ file:///Users/ec2-user/croot/tomlkit_1784720779024/work
+tqdm @ file:///Users/ec2-user/croot/tqdm_1786970330906/work
+truststore @ file:///Users/ec2-user/croot/truststore_1778600076084/work
+typer @ file:///Users/ec2-user/croot/typer_1778701922361/work
+typing-inspection @ file:///Users/ec2-user/croot/typing-inspection_1786534516696/work
+typing_extensions @ file:///Users/ec2-user/croot/typing_extensions_1784101001441/work
+unearth @ file:///Users/ec2-user/croot/unearth_1783060241730/work
+urllib3 @ file:///Users/ec2-user/croot/urllib3_1778536190991/work
+wheel==0.47.0
+zstandard @ file:///Users/ec2-user/croot/zstandard_1776960547437/work
