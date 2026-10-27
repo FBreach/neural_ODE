@@ -58,6 +58,8 @@ python -m pip install -e '.[workflow]'
 python -m snakemake --cores 1 live_forecast
 ```
 
+![Latest Oxford temperature forecast](https://fbreach.github.io/neural_ODE/latest_forecast.png)
+
 This uses the preceding 30 complete days of Open-Meteo model/reanalysis data and
 predicts seven days starting today in `Europe/London`. It writes
 `results/live/oxford_weather_forecast_YYYY-MM-DD.csv` and a log at

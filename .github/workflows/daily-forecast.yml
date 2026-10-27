@@ -1,11 +1,10 @@
 name: Daily weather forecast
 
 on:
-  push:
-    branches: ["felix"]
   schedule:
     - cron: "17 8 * * *"
   workflow_dispatch:
+
 
 permissions:
   contents: read
@@ -36,3 +35,36 @@ jobs:
             examples/forecast/models/oxford_weather_forecast_*.png
           if-no-files-found: error
           retention-days: 90
+      - name: Prepare image for Pages
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/felix'
+        run: |
+          mkdir -p _site
+          cp examples/forecast/models/oxford_weather_forecast_*.png \
+            _site/latest_forecast.png
+          printf '%s\n' \
+            '<!doctype html><title>Oxford weather forecast</title>' \
+            '<img src="latest_forecast.png" alt="Latest Oxford temperature forecast">' \
+            > _site/index.html
+      - name: Upload Pages files
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/felix'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/felix'
+    needs: forecast
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: forecast-pages
+      cancel-in-progress: false
+    steps:
+      - name: Deploy image to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
