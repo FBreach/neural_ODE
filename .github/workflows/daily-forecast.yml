@@ -1,8 +1,6 @@
 name: Daily weather forecast
 
 on:
-  push:
-    branches: ["felix", "main"]
   schedule:
     - cron: "17 8 * * *"
   workflow_dispatch:
