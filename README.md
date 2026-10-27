@@ -174,6 +174,7 @@ directory or configuration file:
 snakemake --cores 1 --config output_dir=results/another_run
 snakemake --cores 1 --configfile path/to/config.yaml
 ```
+![Latest Oxford temperature forecast](https://fbreach.github.io/neural_ODE/latest_forecast.png)
 
 ## Run the weather workflow with Docker
 
