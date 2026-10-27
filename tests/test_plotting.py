@@ -201,7 +201,6 @@ def test_fractional_prediction_plot_uses_one_median_cutoff_line(as_loaders):
     assert not any(line.get_linestyle() == "--" for line in ax_without_observed.lines)
     plt.close("all")
 
-
 def test_plot_latent_space_without_color_does_not_require_cluster_predictions():
     from matplotlib import pyplot as plt
 
@@ -223,4 +222,58 @@ def test_plot_latent_space_without_color_does_not_require_cluster_predictions():
     assert len(ax.collections) == 1
     assert ax.get_legend() is None
     plt.close(fig)
+
+def test_plot_latent_space_without_color_by_defaults_to_clusters():
+
+    class EncoderOnlyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.anchor = torch.nn.Parameter(torch.zeros(()))
+
+        def encode(self, observed, times, mask):
+            return observed[:, 0, :2].unsqueeze(0), None
+
+    batch = {
+        "observed_data": torch.tensor([[[0., 0.]], [[1., 0.]], [[0., 1.]], [[1., 1.]]]),
+        "observed_tp": torch.zeros(4, 1, 1),
+        "observed_mask": torch.ones(4, 1, 2),
+        "labels": torch.tensor([-1, -1, -1, -1]),
+    }
+    with pytest.raises(ValueError, match = "No colours were found"):
+        _fig, _ax, _ = plot_latent_space(EncoderOnlyModel(), {"train": [batch]})
+
+@pytest.mark.parametrize("color_by", ["cluster", "ground_truth"])
+def test_plot_latent_space_groups_points_by_color(color_by):
+    from matplotlib import pyplot as plt
+
+    class LatentModel(torch.nn.Module):
+        def encode(self, observed, times, mask):
+            return observed[:, 0, :2].unsqueeze(0), None
+
+        def pred_cluster(self, observed, times, mask):
+            return (observed[:, 0, 0] > 0).long()
+
+    batch = {
+        "observed_data": torch.tensor([
+            [[0., 0.]], [[1., 0.]], [[0., 1.]], [[1., 1.]],
+        ]),
+        "observed_tp": torch.zeros(4, 1, 1),
+        "observed_mask": torch.ones(4, 1, 2),
+        "labels": torch.tensor([-1, 0, -1, 0]),
+    }
+
+    fig, ax, _ = plot_latent_space(
+        LatentModel(), {"train": [batch]}, color_by=color_by,
+    )
+    try:
+        expected_labels = (
+            ["0", "1"] if color_by == "cluster" else ["Unlabeled", "0"]
+        )
+        assert len(ax.collections) == 2
+        assert [len(group.get_offsets()) for group in ax.collections] == [2, 2]
+        assert [text.get_text() for text in ax.get_legend().get_texts()] == expected_labels
+        assert ax.get_legend().get_title().get_text() == color_by
+        assert ax.get_title() == f"Latent space by {color_by}"
+    finally:
+        plt.close(fig)
 
