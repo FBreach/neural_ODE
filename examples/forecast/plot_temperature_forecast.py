@@ -1,4 +1,4 @@
-"""Plot daily mean temperature bars with minimum and maximum forecast lines."""
+"""Plot daily mean temperature bars with separate minimum and maximum markers."""
 
 import argparse
 from pathlib import Path
@@ -27,17 +27,20 @@ def plot_forecast(frame):
     figure, ax = plt.subplots(figsize=(9, 5), layout="constrained")
     days = np.arange(7)
     ax.bar(days, temperatures[:, 0], width=0.55, color="#a8becd", label="Mean", zorder=2)
-    ax.plot(days, temperatures[:, 1], color="#2563eb", marker="o", linewidth=2, label="Minimum", zorder=3)
-    ax.plot(days, temperatures[:, 2], color="#ea580c", marker="o", linewidth=2, label="Maximum", zorder=3)
+    ax.plot(days, temperatures[:, 1], color="#2563eb", marker="_", markersize=22,
+            markeredgewidth=2.5, linestyle="none", label="Minimum", zorder=3)
+    ax.plot(days, temperatures[:, 2], color="#ea580c", marker="_", markersize=22,
+            markeredgewidth=2.5, linestyle="none", label="Maximum", zorder=3)
     ax.set_xticks(days, dates.strftime("%a\n%d %b"))
-    ax.set_xlabel("Forecast date")
     ax.set_ylabel("Temperature (°C)")
     ax.set_title(f"Oxford seven-day temperature forecast\n{dates[0]:%d %b %Y} – {dates[-1]:%d %b %Y}")
-    ax.grid(axis="y", alpha=0.25)
+    ax.grid(axis="y", color="#e2e8f0", linewidth=0.8)
     ax.set_axisbelow(True)
-    ax.spines[["top", "right"]].set_visible(False)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_color("#cbd5e1")
+    ax.tick_params(axis="both", length=0, pad=8)
     ax.margins(y=0.2)
-    ax.legend(ncol=3, loc="upper left")
+    ax.legend(ncol=3, loc="upper left", frameon=False)
     return figure
 
 
