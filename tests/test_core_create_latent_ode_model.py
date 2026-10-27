@@ -1,6 +1,4 @@
 import pytest
-import torch
-import numpy.testing as npt
 from neural_ode._core.create_latent_ode_model import create_LatentODE_model
 
 DEFAULT_NETWORKS = {
