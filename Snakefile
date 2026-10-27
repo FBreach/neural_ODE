@@ -27,9 +27,11 @@ rule live_forecast:
         model=str(ROOT / "examples/forecast/models/oxford_weather_model.pt"),
         predictor=str(ROOT / "examples/forecast/predict_oxford_weather.py"),
         fetcher=str(ROOT / "examples/forecast/fetch_oxford_weather.py"),
+        plotter=str(ROOT / "examples/forecast/plot_temperature_forecast.py"),
         sources=SOURCES,
     output:
         csv=f"results/live/oxford_weather_forecast_{LIVE_DATE}.csv",
+        png=f"examples/forecast/models/oxford_weather_forecast_{LIVE_DATE}.png",
     params:
         python=sys.executable,
         forecast_date=LIVE_DATE,
@@ -37,8 +39,9 @@ rule live_forecast:
     log:
         f"results/live/logs/forecast_{LIVE_DATE}.log",
     shell:
-        "{params.python:q} {input.predictor:q} --model {input.model:q} "
-        "--forecast-date {params.forecast_date:q} --output {output.csv:q} > {log:q} 2>&1"
+        "({params.python:q} {input.predictor:q} --model {input.model:q} "
+        "--forecast-date {params.forecast_date:q} --output {output.csv:q} && "
+        "{params.python:q} {input.plotter:q} --input {output.csv:q} --output {output.png:q}) > {log:q} 2>&1"
 
 
 rule fetch_weather:

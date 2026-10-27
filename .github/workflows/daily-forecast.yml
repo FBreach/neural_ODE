@@ -27,10 +27,12 @@ jobs:
         run: python -m pip install '.[workflow]'
       - name: Generate seven-day forecast
         run: python -m snakemake --cores 1 --show-failed-logs live_forecast
-      - name: Upload forecast CSV
+      - name: Upload forecast CSV and chart
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: oxford-weather-${{ github.run_id }}-${{ github.run_attempt }}
-          path: results/live/oxford_weather_forecast_*.csv
+          path: |
+            results/live/oxford_weather_forecast_*.csv
+            examples/forecast/models/oxford_weather_forecast_*.png
           if-no-files-found: error
           retention-days: 90

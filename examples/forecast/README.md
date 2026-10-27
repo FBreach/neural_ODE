@@ -62,10 +62,12 @@ This uses the preceding 30 complete days of Open-Meteo model/reanalysis data and
 predicts seven days starting today in `Europe/London`. It writes
 `results/live/oxford_weather_forecast_YYYY-MM-DD.csv` and a log at
 `results/live/logs/forecast_YYYY-MM-DD.log`. The CSV contains date, mean, maximum,
-and minimum temperature in degrees Celsius. Missing data or invalid predictions
+and minimum temperature in degrees Celsius. It also saves a chart to
+`examples/forecast/models/oxford_weather_forecast_YYYY-MM-DD.png`, with mean
+temperature bars and minimum/maximum lines for each date. Missing data or invalid predictions
 fail the run rather than publishing an incomplete CSV.
 
-Snakemake reuses the output for the same day. To fetch data and predict again:
+Snakemake reuses both outputs for the same day. To fetch data and predict again:
 
 ```bash
 python -m snakemake --cores 1 live_forecast --forcerun live_forecast
@@ -76,8 +78,9 @@ runs the historical training/evaluation workflow described above.
 
 The **Daily weather forecast** Action runs this same command on pushes to `felix`,
 on manual dispatch, and daily at **08:17 UTC** after it reaches the default branch.
-Download the CSV from the successful run's **Artifacts** section. Artifacts are
-retained for up to 90 days; generated CSVs are not committed. No model Release,
+Download the CSV and PNG together from the successful run's **Artifacts** section.
+The ZIP preserves their repository folder paths. Artifacts are retained for up
+to 90 days; generated CSVs and PNGs are Git-ignored. No model Release,
 repository variables or model downloads need to be configured.
 
 To update the included model, fetch training data and run the standalone trainer

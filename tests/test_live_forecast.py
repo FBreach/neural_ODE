@@ -185,6 +185,7 @@ def test_live_target_has_no_training_and_reuses_daily_csv(tmp_path):
     shutil.copy(ROOT / "examples/config.yaml", examples / "config.yaml")
     scripts = examples / "forecast"
     scripts.mkdir()
+    shutil.copy(ROOT / "examples/forecast/plot_temperature_forecast.py", scripts / "plot_temperature_forecast.py")
     (scripts / "fetch_oxford_weather.py").write_text("# Offline fetch fixture\n")
     (scripts / "predict_oxford_weather.py").write_text(
         "import argparse, csv\nfrom datetime import date, timedelta\nfrom pathlib import Path\n"
@@ -193,8 +194,9 @@ def test_live_target_has_no_training_and_reuses_daily_csv(tmp_path):
         "args = parser.parse_args()\nassert Path(args.model).is_file()\n"
         "first = date.fromisoformat(args.forecast_date)\n"
         "with open(args.output, 'w') as file:\n"
-        "    writer = csv.writer(file)\n    writer.writerow(['date', 'temperature'])\n"
-        "    writer.writerows([(first + timedelta(days=i), 10) for i in range(7)])\n"
+        "    writer = csv.writer(file)\n"
+        "    writer.writerow(['date', 'temperature_2m_mean_c', 'temperature_2m_min_c', 'temperature_2m_max_c'])\n"
+        "    writer.writerows([(first + timedelta(days=i), 10, 5, 15) for i in range(7)])\n"
     )
     model = scripts / "models/oxford_weather_model.pt"
     model.parent.mkdir()
@@ -217,11 +219,18 @@ def test_live_target_has_no_training_and_reuses_daily_csv(tmp_path):
     assert "rule fetch_weather:" not in plan
     run()
     csv = tmp_path / f"results/live/oxford_weather_forecast_{today}.csv"
+    png = scripts / f"models/oxford_weather_forecast_{today}.png"
     assert len(pd.read_csv(csv)) == 7
+    assert png.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     assert (tmp_path / f"results/live/logs/forecast_{today}.log").exists()
     mtime = csv.stat().st_mtime_ns
+    png_mtime = png.stat().st_mtime_ns
     assert "Nothing to be done" in run()
     assert csv.stat().st_mtime_ns == mtime
+    assert png.stat().st_mtime_ns == png_mtime
+    png.unlink()
+    run()
+    assert png.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     assert model.stat().st_mtime_ns == initial_mtime
     model.unlink()
     result = subprocess.run(command + ["--dry-run"], capture_output=True, text=True, timeout=60)
