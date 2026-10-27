@@ -66,7 +66,7 @@ predicts seven days starting today in `Europe/London`. It writes
 `results/live/logs/forecast_YYYY-MM-DD.log`. The CSV contains date, mean, maximum,
 and minimum temperature in degrees Celsius. It also saves a chart to
 `examples/forecast/models/oxford_weather_forecast_YYYY-MM-DD.png`, with mean
-temperature bars and minimum/maximum lines for each date. Missing data or invalid predictions
+temperature bars and separate minimum/maximum markers for each date. Missing data or invalid predictions
 fail the run rather than publishing an incomplete CSV.
 
 Snakemake reuses both outputs for the same day. To fetch data and predict again:

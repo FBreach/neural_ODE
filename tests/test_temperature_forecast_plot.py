@@ -30,12 +30,13 @@ def forecast():
     })
 
 
-def test_bars_and_lines_match_forecast_values(plotter, forecast):
+def test_bars_and_markers_match_forecast_values(plotter, forecast):
     figure = plotter.plot_forecast(forecast)
     try:
         ax = figure.axes[0]
         np.testing.assert_allclose([bar.get_height() for bar in ax.patches], forecast["temperature_2m_mean_c"])
         assert len(ax.lines) == 2
+        assert all(line.get_linestyle() == "None" for line in ax.lines)
         np.testing.assert_allclose(ax.lines[0].get_ydata(), forecast["temperature_2m_min_c"])
         np.testing.assert_allclose(ax.lines[1].get_ydata(), forecast["temperature_2m_max_c"])
         assert "°C" in ax.get_ylabel()
