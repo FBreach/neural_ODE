@@ -14,7 +14,7 @@ for the getting started guide and API reference.
 
 ## Install locally
 
-Requires Python 3.10 or later. From the repository root, create a virtual
+Requires Python 3.11 or later. From the repository root, create a virtual
 environment and install the package:
 
 ```sh
@@ -24,10 +24,14 @@ python -m pip install -e .
 ```
 
 The distribution name is `neural-ode`; the import name is `neural_ode`.
-The Snakemake example and documentation build require Python 3.11 or later.
+The Snakemake example and documentation build also require Python 3.11 or later.
 
 ## Python API quick start
 
+To train the model, the user must provide an appropriate trajectory or csv path to prep_data.
+The input data must contain one row per trajectory observation with an ID, a
+numeric time, and one column per feature. The final 30% of each trajectory is reserved for forecasting.
+Labels are optional metadata for plotting and evaluation. Missing feature values are supported. 
 Input data is long format: one row per trajectory observation, with an ID, a
 numeric time and one column per feature. Labels are optional metadata for
 plotting and evaluation. Missing feature values are supported.
@@ -86,9 +90,9 @@ scores (NMI, ARI and matched accuracy), and label-free clustering scores
 separately normalised test batches to the model's training scale. Predictions
 and their plots use that training scale.
 
-The synthetic generator returns two DataFrames without writing files. Its
-options include variable trajectory lengths, irregular observation times,
-noise, missing values and seeded generation.
+The synthetic generator returns two DataFrames without writing files. The user can
+specify the trajectory length, observation times, noise, any missing values, and random 
+seeds for generation. 
 
 For a command-line example using your own CSV, see
 [`examples/basic_workflow.py`](examples/basic_workflow.py). It expects `id`,
@@ -97,16 +101,6 @@ For a command-line example using your own CSV, see
 ```sh
 python examples/basic_workflow.py path/to/trajectories.csv --epochs 20
 ```
-
-Plotting helpers
-`plot_input_trajectories`, `plot_predicted_trajectories`, `plot_latent_space`,
-and `plot_training_loss` are also exported from `neural_ode`. Input trajectory
-plots colour and summarise by label when labels are available; without labels,
-they use one neutral colour and an overall median with an interquartile band.
-`plot_predicted_trajectories` automatically uses ground-truth labels after
-pretraining when labels are available, and a neutral colour otherwise. After
-GMM fitting it defaults to cluster colours; pass `color_by=None` to always use
-one neutral colour.
 
 ## Run the weather example with Snakemake
 
@@ -121,9 +115,10 @@ snakemake --cores 1
 
 The [Snakefile](Snakefile) fetches Oxford weather using
 [`examples/forecast/fetch_oxford_weather.py`](examples/forecast/fetch_oxford_weather.py),
-splits the prepared windows, trains a model, evaluates it and plots the results.
-The first run requires internet access to the Open-Meteo archive API. Each
-window contains 30 context days followed by 7 forecast days, advancing by 7 days.
+splits the prepared windows, trains a model on weather data from 30 context days,
+evaluates it and plots the predicted weather over the next 7 days.
+The first run requires internet access to the Open-Meteo archive API. The DAG for the
+Snakemake workflow is shown below.
 
 ![Weather workflow DAG: fetch_weather supplies gather_data; gather_data supplies train, evaluate and plot; train supplies evaluate and plot; all collects the final outputs.](examples/figures/dag.svg)
 
@@ -133,7 +128,7 @@ outputs. The diagram's Mermaid source is available in
 [`examples/figures/dag.mmd`](examples/figures/dag.mmd).
 
 Edit [`examples/config.yaml`](examples/config.yaml) to set archive dates,
-preparation, model and training parameters. Outputs go to
+preparation, model, and training parameters. Outputs go to
 `results/oxford_weather/`:
 
 | Output | Contents |
@@ -158,12 +153,6 @@ The latest 20% of windows form the test set. Within the earlier data, the latest
 so training, validation and test sets share no observation dates. Consequently,
 the retained proportions differ from the requested fractions. Weather has no
 class labels, so NMI, ARI and matched accuracy are unavailable.
-
-The workflow keeps pretraining, GMM fitting and fine-tuning in one training
-job. Its private checkpoint includes the model configuration, weights,
-training normalisation, feature names and phase for downstream jobs; it is
-not an optimiser checkpoint for resuming interrupted training. Evaluation and
-plotting load that checkpoint in separate processes.
 
 Completed stages are reused when their inputs and declared parameters are
 unchanged. Changing training parameters reruns training and downstream jobs;
@@ -272,11 +261,10 @@ ruff check .
 python -m pytest
 ```
 
-The workflow integration test uses an offline weather-shaped fixture to check
-saved outputs, reuse of completed work, plotting without retraining and
-planned reruns after parameter changes. It also checks that chronological
-splits share no observation dates. The integration test is skipped when
-Snakemake is unavailable.
+The workflow is tested using an offline proxy for the weather data; the integration test
+checks the basic functionality of the workflow including saving outputs, plotting, and running with
+varying parameters. It also checks that chronological splits share
+no observation dates. The integration test is skipped when Snakemake is unavailable.
 
 ## Source and licence
 
