@@ -38,6 +38,7 @@ class TrainingResult:
         Best-model checkpoint file, or None if no checkpoint was written.
     phase : {'pretrain', 'finetune'} or None, optional
         Training phase that produced the result.
+
     """
 
     model: torch.nn.Module
@@ -56,6 +57,7 @@ class GMMResult:
         Input model with its mixture prior updated in place.
     estimator : sklearn.mixture.GaussianMixture
         Fitted diagonal-covariance mixture of training posterior means.
+
     """
 
     model: torch.nn.Module
@@ -90,6 +92,7 @@ class PredictionTrajectory:
         Boolean context observation mask.
     cutoff_time : float or None, optional
         Last context time for extrapolation, or None for reconstruction.
+
     """
 
     id: object
@@ -120,6 +123,7 @@ class PredictionResult:
         absolute cutoff is available. None if no trajectory has a cutoff.
     phase : {'pretrain', 'clustered', 'finetune'} or None, optional
         Model phase at prediction time, used for automatic plot colouring.
+
     """
 
     trajectories: list[PredictionTrajectory]
@@ -257,6 +261,7 @@ def train_pretrain(loaders, *, model_config=None, epochs=100, learning_rate=1e-3
     Move the model to ``device``, freeze its mixture-prior parameters and use
     a zero KL coefficient. Save scaling metadata when given ``DataLoaders``.
     Print training progress and mark the resulting model phase ``'pretrain'``.
+
     """
     torch.manual_seed(seed)
     train_loader, _ = _get_loaders(loaders)
@@ -309,6 +314,7 @@ def train_fit_gmm(model, loaders, *, n_components=None, seed=0, reg_covar=1e-6):
     Encode on the model's current device in evaluation mode. Fit with ten
     initialisations, copy component means, variances and weights into the
     model prior, and mark its phase ``'clustered'``.
+
     """
     train_loader, _ = _get_loaders(loaders)
     device = next(model.parameters()).device
@@ -379,6 +385,7 @@ def train_finetune(model, loaders, *, epochs=100, learning_rate=1e-3, weight_dec
     Move the model to ``device`` and enable gradients for mixture-prior
     parameters. Save scaling metadata when given ``DataLoaders``, print
     progress, and mark the resulting model phase ``'finetune'``.
+
     """
     torch.manual_seed(seed)
     return _run_phase(model, loaders, phase="finetune", epochs=epochs,
@@ -417,6 +424,7 @@ def predict(model, data_or_loader, *, device="cpu"):
     Move the model to ``device`` and leave it in evaluation mode. Disable
     gradient recording and latent sampling. Without a cutoff, reconstruct
     the complete trajectory rather than forecasting a held-out segment.
+
     """
     feature_names = None
     cutoff_time = None
@@ -547,6 +555,7 @@ def evaluate_performance(model, test_loader, *, device="cpu"):
     metadata are available; otherwise use values as supplied. Move the model
     to ``device`` and leave it in evaluation mode. Disable gradient recording
     and latent sampling.
+
     """
     metric_names = (
         "mse", "nmi", "ari", "acc", "silhouette", "davies_bouldin",

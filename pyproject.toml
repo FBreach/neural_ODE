@@ -14,11 +14,14 @@ dependencies = [
   "scipy>=1.10",
   "scikit-learn>=1.3",
   "torch>=2.0",
-  "torchdiffeq>=0.2.3",
+#   "torchdiffeq>=0.2.3",
   "ipykernel"
 ]
 
 [project.optional-dependencies]
+workflow = [
+  "snakemake>=9,<10",
+]
 dev = [
   "pytest",
   "pytest-cov",

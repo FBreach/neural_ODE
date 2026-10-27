@@ -101,6 +101,7 @@ def plot_input_trajectories(data, *, feature_cols=None, cutoff=None, max_traject
         If ``data`` is not a ``TrajectoryData`` instance.
     ValueError
         If a requested feature is unknown.
+
     """
     if not isinstance(data, TrajectoryData):
         raise TypeError("data must be returned by prep_data")
@@ -273,6 +274,7 @@ def plot_predicted_trajectories(
         If ``predictions`` is not a ``PredictionResult`` instance.
     ValueError
         If ``color_by`` is unsupported.
+
     """
     if not isinstance(predictions, PredictionResult):
         raise TypeError("predictions must be returned by predict")
@@ -376,6 +378,7 @@ def plot_latent_space(model, loaders, *, color_by="cluster", device="cpu"):
     -----
     Move the model to ``device`` and leave it in evaluation mode. Encode
     without gradient recording.
+
     """
     from .training import _get_loaders
     train_loader, _ = _get_loaders(loaders)
@@ -447,6 +450,7 @@ def plot_training_loss(history, *, metrics=None):
     ------
     ValueError
         If history is empty or no requested metrics remain after filtering.
+
     """
     phase = getattr(history, "phase", None)
     if hasattr(history, "history"):
