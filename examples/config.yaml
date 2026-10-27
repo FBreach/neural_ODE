@@ -1,22 +1,21 @@
-output_dir: results/basic_workflow
+output_dir: results/oxford_weather
 
-# This stage can later be replaced by real-data acquisition producing the same CSVs.
-generation:
-  n_train: 60
-  n_test: 18
-  n_classes: 3
-  n_features: 3
-  length: 20
-  irregularity: 0.4
-  noise: 0.1
-  seed: 68
+weather:
+  window_csv: examples/forecast/data/oxford_weather_windows.csv
+  # Fixed dates make the fetched dataset repeatable; extend end_date to refresh it.
+  start_date: "2021-01-01"
+  end_date: "2025-12-31"
+  test_fraction: 0.2
 
 preparation:
-  id_col: trajectory_id
+  id_col: window_id
   time_col: time
-  label_col: label
-  cutoff: 0.7
-  cutoff_mode: fraction
+  feature_cols:
+    - temperature_2m_mean_c
+    - temperature_2m_max_c
+    - temperature_2m_min_c
+  cutoff: 29
+  cutoff_mode: time
 
 training:
   epochs: 20

@@ -111,8 +111,10 @@ def prepare_windows(weather: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--window-output", type=Path, default=WINDOW_OUTPUT, help="prepared window CSV path")
+    parser.add_argument("--start-date", default="2021-01-01", help="inclusive first archive date (YYYY-MM-DD)")
+    parser.add_argument("--end-date", default=None, help="inclusive final archive date; defaults to yesterday")
     args = parser.parse_args()
-    windows = prepare_windows(fetch_weather())
+    windows = prepare_windows(fetch_weather(args.start_date, args.end_date))
     args.window_output.parent.mkdir(parents=True, exist_ok=True)
     windows.to_csv(args.window_output, index=False, float_format="%.6f")
     print(f"Saved {windows['window_id'].nunique()} windows ({WINDOW_DAYS} rows each) to {args.window_output}")

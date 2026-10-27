@@ -1,6 +1,7 @@
-"""Run the basic example from generated data to saved evaluation and figures."""
+"""Fetch Oxford weather, train a forecaster and save evaluation and figures."""
 
 from pathlib import Path
+import sys
 
 ROOT = Path(workflow.basedir)
 configfile: str(ROOT / "examples/config.yaml")
@@ -18,15 +19,32 @@ rule all:
         f"{RESULTS}/figures/training_loss.pdf",
 
 
+rule fetch_weather:
+    input:
+        fetcher=str(ROOT / "examples/forecast/fetch_oxford_weather.py"),
+    output:
+        windows=config["weather"]["window_csv"],
+    params:
+        python=sys.executable,
+        start=config["weather"]["start_date"],
+        end=config["weather"]["end_date"],
+    log:
+        f"{RESULTS}/logs/fetch_weather.log",
+    shell:
+        "{params.python:q} {input.fetcher:q} --start-date {params.start:q} "
+        "--end-date {params.end:q} --window-output {output.windows:q} > {log:q} 2>&1"
+
+
 rule gather_data:
     input:
+        windows=rules.fetch_weather.output.windows,
         sources=SOURCES,
         helpers=HELPERS,
     output:
         train=f"{RESULTS}/data/train.csv",
         test=f"{RESULTS}/data/test.csv",
     params:
-        generation=config["generation"],
+        test_fraction=config["weather"]["test_fraction"],
     log:
         f"{RESULTS}/logs/gather_data.log",
     script:

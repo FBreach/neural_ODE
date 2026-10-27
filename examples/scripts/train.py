@@ -1,6 +1,7 @@
 """Run pretraining, GMM fitting and fine-tuning in one process."""
 
-from helpers import run_logged, write_json
+from helpers import run_logged, split_weather_windows, write_json
+import pandas as pd
 import torch
 
 from neural_ode import (
@@ -11,10 +12,18 @@ from neural_ode import (
 
 def main(job):
     settings = job.params.training
-    data = prep_data(job.input.train, **job.params.preparation)
+    frame = pd.read_csv(job.input.train)
+    training, validation = split_weather_windows(frame, settings["val_split"])
+    training_ids = training["window_id"].drop_duplicates().tolist()
+    validation_ids = validation["window_id"].drop_duplicates().tolist()
+    data = prep_data(pd.concat([training, validation]), **job.params.preparation)
+    by_id = {trajectory.id: trajectory for trajectory in data.trajectories}
+    # prep_batches reserves the first trajectories for validation when shuffle=False.
+    data.trajectories = [by_id[window_id] for window_id in validation_ids + training_ids]
     loaders = prep_batches(
-        data, batch_size=settings["batch_size"], val_split=settings["val_split"],
-        normalize=True, seed=settings["seed"],
+        data, batch_size=settings["batch_size"],
+        val_split=len(validation_ids) / len(data.trajectories),
+        shuffle=False, normalize=True, seed=settings["seed"],
     )
     torch.manual_seed(settings["seed"])
     model = create_model(len(data.feature_names), job.params.model)
@@ -32,6 +41,8 @@ def main(job):
         "preparation": dict(job.params.preparation),
         "normalization": (loaders.mean, loaders.std),
         "phase": finetuned.phase,
+        "training_window_ids": training_ids,
+        "validation_window_ids": validation_ids,
     }, job.output.model)
     write_json(job.output.history, {
         "pretrain": pretrained.history, "finetune": finetuned.history,
