@@ -351,18 +351,18 @@ class Encoder_z0_ODE_RNN(nn.Module):
 
 
 
-class Decoder(nn.Module):
-    def __init__(self, latent_dim, input_dim):
-        super(Decoder, self).__init__()
-        # decode data from latent space where we are solving an ODE back to the data space
-
-        decoder = nn.Sequential(
-           nn.Linear(latent_dim, input_dim),)
-
-        utils.init_network_weights(decoder)
-        self.decoder = decoder
-
-    def forward(self, data):
-        return self.decoder(data)
+# class Decoder(nn.Module):
+#     def __init__(self, latent_dim, input_dim):
+#         super(Decoder, self).__init__()
+#         # decode data from latent space where we are solving an ODE back to the data space
+#
+#         decoder = nn.Sequential(
+#            nn.Linear(latent_dim, input_dim),)
+#
+#         utils.init_network_weights(decoder)
+#         self.decoder = decoder
+#
+#     def forward(self, data):
+#         return self.decoder(data)
 
 

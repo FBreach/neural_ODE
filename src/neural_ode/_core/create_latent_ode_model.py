@@ -7,7 +7,8 @@
 import torch.nn as nn
 
 from .utils import create_mlp
-from .latent_ode import LatentODE, LatentODEADNIMixture, LatentODEPostHocGMM
+# from .latent_ode import LatentODE, LatentODEADNIMixture, LatentODEPostHocGMM
+from .latent_ode import LatentODE
 from .encoder_decoder import Encoder_z0_ODE_RNN, Encoder_z0_RNN
 from .diffeq_solver import DiffeqSolverParallel
 
@@ -15,8 +16,8 @@ from .ode_func import ODEFunc
 
 
 SUPPORTED_ODE_METHODS = ("euler", "rk2", "rk4")
-POSTHOC_GMM_LATENTODE_ODERNN = "LatentODE_odernn_vae_gmm"
-ADNI_MIXTURE_LATENTODE_ODERNN = "LatentODE_odernn_adni_mixture"
+# POSTHOC_GMM_LATENTODE_ODERNN = "LatentODE_odernn_vae_gmm"
+# ADNI_MIXTURE_LATENTODE_ODERNN = "LatentODE_odernn_adni_mixture"
 
 
 def _cfg_value(section, key):
@@ -30,8 +31,8 @@ def _encoder_name_for_model(model_name):
         return "rnn"
     if model_name in (
         "LatentODE_odernn",
-        POSTHOC_GMM_LATENTODE_ODERNN,
-        ADNI_MIXTURE_LATENTODE_ODERNN,
+#         POSTHOC_GMM_LATENTODE_ODERNN,
+#         ADNI_MIXTURE_LATENTODE_ODERNN,
     ):
         return "odernn"
     raise ValueError(f"Unknown LatentODE model_name: {model_name}")
@@ -42,16 +43,16 @@ def create_LatentODE_model(
     model_name,
     latent_dim=6,
     networks=None,
-    poisson=False,
+#     poisson=False,
     use_delta_t=True,
     method="rk4",
     odeint_rtol=1e-3,
     odeint_atol=1e-4,
     k=2,
     run_backwards=True,
-    lambda_dx=1.0,
-    dx_decoder_type="categorical",
-    feature_names=None,
+#     lambda_dx=1.0,
+#     dx_decoder_type="categorical",
+#     feature_names=None,
 ):
     """Create a Latent ODE model from the explicit model.networks schema."""
     if networks is None:
@@ -85,8 +86,8 @@ def create_LatentODE_model(
     gen_data_dim = input_dim
 
     z0_dim = latent_dim
-    if poisson:
-        z0_dim += latent_dim  # predict the initial poisson rate
+#     if poisson:
+#         z0_dim += latent_dim  # predict the initial poisson rate
 
     if encoder_name == "odernn":
         encoder_cfg = _cfg_value(networks, "z0_encoder_odernn")
@@ -150,21 +151,21 @@ def create_LatentODE_model(
         odeint_atol=odeint_atol,
     )
 
-    if model_name == POSTHOC_GMM_LATENTODE_ODERNN:
-        model_cls = LatentODEPostHocGMM
-        extra_model_kwargs = {}
-    elif model_name == ADNI_MIXTURE_LATENTODE_ODERNN:
-        model_cls = LatentODEADNIMixture
-        extra_model_kwargs = {
-            "lambda_dx": lambda_dx,
-            "dx_decoder_type": dx_decoder_type,
-            "feature_names": feature_names,
-        }
-    else:
-        model_cls = LatentODE
-        extra_model_kwargs = {}
-
-    model = model_cls(
+#     if model_name == POSTHOC_GMM_LATENTODE_ODERNN:
+#         model_cls = LatentODEPostHocGMM
+#         extra_model_kwargs = {}
+#     elif model_name == ADNI_MIXTURE_LATENTODE_ODERNN:
+#         model_cls = LatentODEADNIMixture
+#         extra_model_kwargs = {
+#             "lambda_dx": lambda_dx,
+#             "dx_decoder_type": dx_decoder_type,
+#             "feature_names": feature_names,
+#         }
+#     else:
+#         model_cls = LatentODE
+#         extra_model_kwargs = {}
+#
+    model = LatentODE(
         input_dim=gen_data_dim,
         latent_dim=latent_dim,
         encoder_z0=encoder_z0,
@@ -175,7 +176,7 @@ def create_LatentODE_model(
             _cfg_value(networks, "emission"),
             "hidden_dims",
         ),
-        **extra_model_kwargs,
+#         **extra_model_kwargs,
     )
 
     return model
