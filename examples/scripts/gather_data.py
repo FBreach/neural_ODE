@@ -1,11 +1,12 @@
-"""Produce the workflow's input CSVs using the synthetic data generator."""
+"""Split Oxford weather windows into chronological training and test CSVs."""
 
-from helpers import run_logged
-from neural_ode import generate_synthetic_data
+from helpers import run_logged, split_weather_windows
+import pandas as pd
 
 
 def main(job):
-    train, test = generate_synthetic_data(**job.params.generation)
+    windows = pd.read_csv(job.input.windows)
+    train, test = split_weather_windows(windows, job.params.test_fraction)
     train.to_csv(job.output.train, index=False)
     test.to_csv(job.output.test, index=False)
     print(f"Wrote {len(train)} training rows and {len(test)} test rows.")
