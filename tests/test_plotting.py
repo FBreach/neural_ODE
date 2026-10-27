@@ -277,3 +277,21 @@ def test_plot_latent_space_groups_points_by_color(color_by):
     finally:
         plt.close(fig)
 
+
+def test_plot_training_loss():
+    from matplotlib import pyplot as plt
+
+    history = [
+        {"epoch": 1, "train_loss": 3.0, "val_loss": 4.0},
+        {"epoch": 2, "train_loss": 1.0, "val_loss": 2.0},
+    ]
+    fig, ax = plot_training_loss(history)
+    try:
+        assert ax.get_xlabel() == "Epoch"
+        assert ax.get_ylabel() == "Loss"
+        assert [line.get_label() for line in ax.lines] == ["train_loss", "val_loss"]
+        for line, values in zip(ax.lines, ([3.0, 1.0], [4.0, 2.0])):
+            np.testing.assert_array_equal(line.get_xdata(), [1, 2])
+            np.testing.assert_array_equal(line.get_ydata(), values)
+    finally:
+        plt.close(fig)
