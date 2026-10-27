@@ -2,12 +2,12 @@
 
 from datetime import datetime, timezone
 import importlib.util
-import json
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -165,22 +165,10 @@ def test_interrupted_write_preserves_previous_csv(inference, monkeypatch):
     assert not list(inference.output.parent.glob("*.tmp"))
 
 
-def test_real_model_checkpoint_inference(inference, predictor, checkpoint, monkeypatch):
+def test_committed_model_checkpoint_inference(inference, predictor, monkeypatch):
     from neural_ode import create_model, predict
 
-    settings = {
-        "latent_dim": 2, "n_clusters": 2,
-        "networks": {
-            "z0_encoder_odernn": {
-                "state_dim": 4, "recognition_ode_hidden_dims": [4],
-                "gru_update_hidden_dims": [4], "posterior_hidden_dims": [4],
-            },
-            "generative_ode": {"hidden_dims": [4]}, "emission": {"hidden_dims": [4]},
-        },
-    }
-    model = create_model(3, settings)
-    checkpoint.update(model_config=settings, model_state_dict=model.state_dict())
-    torch.save(checkpoint, inference.model_path)
+    shutil.copyfile(ROOT / "examples/forecast/models/oxford_weather_model.pt", inference.model_path)
     monkeypatch.setattr(predictor, "create_model", create_model)
     monkeypatch.setattr(predictor, "predict", predict)
     frame = inference.run("2026-10-27")
@@ -208,15 +196,14 @@ def test_live_target_has_no_training_and_reuses_daily_csv(tmp_path):
         "    writer = csv.writer(file)\n    writer.writerow(['date', 'temperature'])\n"
         "    writer.writerows([(first + timedelta(days=i), 10) for i in range(7)])\n"
     )
-    model = tmp_path / "external-model.pt"
+    model = scripts / "models/oxford_weather_model.pt"
+    model.parent.mkdir()
     model.write_bytes(b"external checkpoint")
     initial_mtime = model.stat().st_mtime_ns
-    config = tmp_path / "live.json"
-    settings = {"live_forecast": {"model_path": str(model), "output_dir": "live", "forecast_date": "2026-10-27"}}
-    config.write_text(json.dumps(settings))
+    today = datetime.now(ZoneInfo("Europe/London")).date().isoformat()
     command = [
         sys.executable, "-m", "snakemake", "live_forecast", "--cores", "1",
-        "--snakefile", str(tmp_path / "Snakefile"), "--directory", str(tmp_path), "--configfile", str(config),
+        "--snakefile", str(tmp_path / "Snakefile"), "--directory", str(tmp_path),
     ]
 
     def run(*args):
@@ -229,16 +216,12 @@ def test_live_target_has_no_training_and_reuses_daily_csv(tmp_path):
     assert "rule train:" not in plan
     assert "rule fetch_weather:" not in plan
     run()
-    csv = tmp_path / "live/oxford_weather_forecast_2026-10-27.csv"
+    csv = tmp_path / f"results/live/oxford_weather_forecast_{today}.csv"
     assert len(pd.read_csv(csv)) == 7
-    assert (tmp_path / "live/logs/forecast_2026-10-27.log").exists()
+    assert (tmp_path / f"results/live/logs/forecast_{today}.log").exists()
     mtime = csv.stat().st_mtime_ns
     assert "Nothing to be done" in run()
     assert csv.stat().st_mtime_ns == mtime
-    settings["live_forecast"]["forecast_date"] = "2026-10-28"
-    config.write_text(json.dumps(settings))
-    run()
-    assert (tmp_path / "live/oxford_weather_forecast_2026-10-28.csv").exists()
     assert model.stat().st_mtime_ns == initial_mtime
     model.unlink()
     result = subprocess.run(command + ["--dry-run"], capture_output=True, text=True, timeout=60)

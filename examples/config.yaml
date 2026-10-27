@@ -1,11 +1,5 @@
 output_dir: results/oxford_weather
 
-live_forecast:
-  model_path: results/live/oxford_weather_model.pt
-  output_dir: results/live
-  # null uses today's date in Europe/London; set YYYY-MM-DD to reproduce a run.
-  forecast_date: null
-
 weather:
   window_csv: examples/forecast/data/oxford_weather_windows.csv
   # Fixed dates make the fetched dataset repeatable; extend end_date to refresh it.
