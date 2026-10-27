@@ -1,0 +1,29 @@
+output_dir: results/basic_workflow
+
+# This stage can later be replaced by real-data acquisition producing the same CSVs.
+generation:
+  n_train: 60
+  n_test: 18
+  n_classes: 3
+  n_features: 3
+  length: 20
+  irregularity: 0.4
+  noise: 0.1
+  seed: 68
+
+preparation:
+  id_col: trajectory_id
+  time_col: time
+  label_col: label
+  cutoff: 0.7
+  cutoff_mode: fraction
+
+training:
+  epochs: 20
+  batch_size: 16
+  val_split: 0.2
+  seed: 68
+
+model:
+  latent_dim: 6
+  n_clusters: 3

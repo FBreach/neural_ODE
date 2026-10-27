@@ -3,6 +3,8 @@
 *.egg-info/
 build/
 dist/
+.snakemake/
+results/
 docs/_build/
 *.xml
 
@@ -21,3 +23,5 @@ __pycache__/
 
 # IDE
 *.vscode/
+/examples/forecast/results/
+/examples/forecast/data/
