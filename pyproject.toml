@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "neural-ode"
 version = "0.1.0"
 description = "Neural ODE forecasting and latent trajectory clustering"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   "matplotlib>=3.7",
   "numpy>=1.24",
