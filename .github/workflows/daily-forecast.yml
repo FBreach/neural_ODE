@@ -48,7 +48,7 @@ jobs:
             '<img src="latest_forecast.png" alt="Latest Oxford temperature forecast">' \
             > _site/index.html
       - name: Upload Pages files
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/felix'
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
