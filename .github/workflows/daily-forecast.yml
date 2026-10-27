@@ -38,7 +38,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Prepare image for Pages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/felix'
         run: |
           mkdir -p _site
           cp examples/forecast/models/oxford_weather_forecast_*.png \
