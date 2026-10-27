@@ -1,0 +1,28 @@
+output_dir: results/oxford_weather
+
+weather:
+  window_csv: examples/forecast/data/oxford_weather_windows.csv
+  # Fixed dates make the fetched dataset repeatable; extend end_date to refresh it.
+  start_date: "2021-01-01"
+  end_date: "2025-12-31"
+  test_fraction: 0.2
+
+preparation:
+  id_col: window_id
+  time_col: time
+  feature_cols:
+    - temperature_2m_mean_c
+    - temperature_2m_max_c
+    - temperature_2m_min_c
+  cutoff: 29
+  cutoff_mode: time
+
+training:
+  epochs: 20
+  batch_size: 16
+  val_split: 0.2
+  seed: 68
+
+model:
+  latent_dim: 6
+  n_clusters: 3

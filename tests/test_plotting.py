@@ -150,6 +150,7 @@ def test_input_trajectory_plot_scales_to_many_trajectories():
     assert len(raw_lines) == 40
     plt.close(fig)
 
+
 class _PlotPredictionModel(torch.nn.Module):
     def __init__(self, feature_count):
         super().__init__()
