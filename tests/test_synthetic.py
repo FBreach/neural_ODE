@@ -58,6 +58,10 @@ def test_synthetic_generation_variable_lengths_and_validation():
         ({"irregularity": -0.1}, "irregularity must be nonnegative"),
         ({"missing_rate": 1.0}, r"missing_rate must be in \[0, 1\)"),
         ({"time_end": 0}, "time_end must be positive"),
+        ({"n_features": 0}, "n_features must be positive"),
+        ({"length": 1}, "length must be at least 2"),
+        ({"min_length": 1, "max_length": 2}, "Require 2 <= min_length <= max_length"),
+        ({"noise": -1}, "noise and class_variability must be nonnegative")
     ],
 )
 def test_synthetic_generation_rejects_invalid_options(options, message):
