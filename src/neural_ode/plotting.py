@@ -395,7 +395,7 @@ def plot_latent_space(model, loaders, *, color_by="cluster", device="cpu"):
             latent.append(mu.squeeze(0).cpu().numpy())
             if color_by == "ground_truth":
                 labels.extend(batch["labels"].tolist())
-            elif color_by == "cluster":
+            elif color_by == "cluster" and hasattr(model, "pred_cluster"):
                 clusters.extend(model.pred_cluster(observed, times, mask).cpu().tolist())
     latent = np.concatenate(latent)
     if latent.shape[0] < 2:
@@ -410,6 +410,8 @@ def plot_latent_space(model, loaders, *, color_by="cluster", device="cpu"):
         title = "Latent space"
     else:
         colors = np.asarray(clusters if color_by == "cluster" else labels)
+        if len(colors) == 0:
+            raise ValueError("No colours were found")
         groups = list(np.unique(colors))
         palette = _group_colors(groups)
         for label in groups:

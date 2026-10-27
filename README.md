@@ -1,8 +1,13 @@
 # neural_ode
 
 A Python package for forecasting and clustering irregular trajectories with a
-Latent ODE and Gaussian mixture prior. This project is part of the Research Software Engineering Course at the University of Oxford and builds upon work done by Felix Breach at the Adaptive Brain Lab (University of Cambridge).
+Latent ODE and Gaussian mixture prior. It includes data preparation, synthetic
+trajectory generation, training, evaluation and plotting, with a Snakemake
+workflow for Oxford weather and a Docker image for running that workflow.
 
+This project is part of the Research Software Engineering Course at the
+University of Oxford and builds upon work done by Felix Breach at the
+Adaptive Brain Lab (University of Cambridge).
 
 [Read the documentation](https://neural-ode.readthedocs.io/en/latest/index.html)
 for the getting started guide and API reference.
@@ -21,7 +26,7 @@ python -m pip install -e .
 The distribution name is `neural-ode`; the import name is `neural_ode`.
 The Snakemake example and documentation build require Python 3.11 or later.
 
-## Quick start
+## Python API quick start
 
 Input data is long format: one row per trajectory observation, with an ID, a
 numeric time and one column per feature. Labels are optional metadata for
@@ -39,7 +44,7 @@ from neural_ode import (
 
 train_df, test_df = generate_synthetic_data(
     n_train=60, n_test=18, n_classes=3, n_features=2,
-    length=20, irregularity=0.4, noise=0.1, seed=42,
+    length=20, irregularity=0.4, noise=0.1, seed=94,
 )
 data_options = {
     "id_col": "trajectory_id",
@@ -51,14 +56,14 @@ data_options = {
 }
 data = prep_data(train_df, **data_options)
 loaders = prep_batches(
-    data, batch_size=16, val_split=0.2, normalize=True, seed=42,
+    data, batch_size=16, val_split=0.2, normalize=True, seed=94,
 )
 pretrained = train_pretrain(
     loaders, model_config={"latent_dim": 6, "n_clusters": 3},
-    epochs=20, seed=42,
+    epochs=20, seed=94,
 )
-gmm = train_fit_gmm(pretrained.model, loaders, seed=42)
-finetuned = train_finetune(gmm.model, loaders, epochs=20, seed=42)
+gmm = train_fit_gmm(pretrained.model, loaders, seed=94)
+finetuned = train_finetune(gmm.model, loaders, epochs=20, seed=94)
 
 test_data = prep_data(test_df, **data_options)
 test_loader = prep_batches(
@@ -103,7 +108,7 @@ pretraining when labels are available, and a neutral colour otherwise. After
 GMM fitting it defaults to cluster colours; pass `color_by=None` to always use
 one neutral colour.
 
-## Run the example with Snakemake
+## Run the weather example with Snakemake
 
 With Python 3.11 or later, install the optional workflow dependencies and run
 these commands from the repository root:
@@ -170,7 +175,79 @@ snakemake --cores 1 --config output_dir=results/another_run
 snakemake --cores 1 --configfile path/to/config.yaml
 ```
 
+## Run the weather workflow with Docker
+
+Install Docker and start its daemon. Run the
+following commands from the repository root. The image provides Python 3.12,
+CPU-only PyTorch, the package and Snakemake; a local Python environment is not
+required for this route.
+
+Build the image from the [Dockerfile](Dockerfile):
+
+```sh
+docker build -t neural-ode .
+```
+
+Run the complete weather workflow and keep its outputs on your machine:
+
+```sh
+mkdir -p results
+docker run --rm \
+  --mount type=bind,source="$(pwd)/results",target=/app/results \
+  neural-ode
+```
+
+The default command is `snakemake --cores 1`. It fetches the configured weather
+archive, trains and evaluates the model, and creates the PDFs listed above.
+The first fetch requires internet access. View the saved model, metrics, logs
+and figures under `results/oxford_weather/` on the host.
+
+The image runs as the non-root user `runner`, so mounted output directories
+must be writable by that user. The bind mount retains outputs when `--rm`
+removes the container. Running `docker run --rm neural-ode` without a mount
+also executes the workflow, but its outputs disappear when the container
+exits. See [Docker's bind mount documentation](https://docs.docker.com/engine/storage/bind-mounts/)
+for how host directories are shared with containers.
+
+The command above persists only `results/`. Downloaded weather windows and
+Snakemake metadata remain inside the container, so a fresh container fetches
+the archive again and can rerun completed stages.
+
+To preview the jobs without executing them, override the default command:
+
+```sh
+docker run --rm neural-ode snakemake --cores 1 --dry-run
+```
+
+The image contains a copy of `examples/config.yaml` from build time. To use
+an edited host configuration without rebuilding, mount that file read-only:
+
+```sh
+docker run --rm \
+  --mount type=bind,source="$(pwd)/results",target=/app/results \
+  --mount type=bind,source="$(pwd)/examples/config.yaml",target=/app/examples/config.yaml,readonly \
+  neural-ode
+```
+
+Keep `output_dir` under `results/` to retain outputs through the mount above.
+Rebuild the image after changing package code or workflow scripts. The
+[.dockerignore](.dockerignore) excludes local environments, credentials,
+Snakemake metadata, downloaded weather data and generated results from the
+build context. Dependency versions are not locked, so rebuilding can install
+different versions.
+
+The [standalone weather example](examples/forecast/README.md) also provides
+commands for forecasting the next seven days from recent observations. Those
+commands use their own checkpoint format. The Docker image runs the root
+workflow, which evaluates held-out historical windows.
+
 ## Documentation
+
+For a daily seven-day forecast CSV without retraining, use the explicit
+`snakemake --cores 1 live_forecast` target. The
+[daily forecast setup guide](examples/forecast/README.md#daily-inference-with-snakemake)
+uses the checkpoint included in the repository and covers the 08:17 UTC GitHub
+Actions schedule with downloadable CSV artifacts.
 
 The [Read the Docs site](https://neural-ode.readthedocs.io/en/latest/index.html)
 contains the getting-started guide and API reference generated from the
@@ -194,10 +271,11 @@ ruff check .
 python -m pytest
 ```
 
-The workflow integration test uses an offline weather-shaped fixture to check saved
-outputs, reuse of completed work, plotting without retraining and planned
-reruns after parameter changes. It also checks that chronological splits share
-no observation dates. The integration test is skipped when Snakemake is unavailable.
+The workflow integration test uses an offline weather-shaped fixture to check
+saved outputs, reuse of completed work, plotting without retraining and
+planned reruns after parameter changes. It also checks that chronological
+splits share no observation dates. The integration test is skipped when
+Snakemake is unavailable.
 
 ## Source and licence
 

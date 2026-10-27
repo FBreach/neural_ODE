@@ -25,3 +25,4 @@ __pycache__/
 *.vscode/
 /examples/forecast/results/
 /examples/forecast/data/
+/examples/forecast/models/oxford_weather_forecast_*.png

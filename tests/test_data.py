@@ -88,20 +88,6 @@ def test_prep_batches_splits_ids_fits_normalization_on_train_only():
     assert loaders.mean.shape == (1,)
     assert {loaders.train.dataset[i]["id"] for i in range(len(loaders.train.dataset))} == {"c", "d"}
 
-def test_prep_batches_raises_errors_for_invalid_input():
-    frame = sample_frame()
-    data = prep_data(sample_frame(), feature_cols=["x"], cutoff=0.5, cutoff_mode="fraction")
-    with pytest.raises(TypeError, match = "must be returned by prep_data"):
-        prep_batches(frame, batch_size=2, val_split=0.25, test_split=0.25,
-                          shuffle=False, normalize=True)
-    with pytest.raises(ValueError, match = "must be positive"):
-        prep_batches(data, batch_size=0, val_split=0.25, test_split=0.25,
-                          shuffle=False, normalize=True)
-    with pytest.raises(ValueError, match = "sum to less than 1"):
-            prep_batches(data, batch_size=2, val_split=0.25, test_split=0.85,
-                              shuffle=False, normalize=True)
-    
-
 def test_normalized_missing_values_stay_zero_under_mask():
     data = prep_data(sample_frame(), feature_cols=["x", "y"], cutoff=0.5,
                      cutoff_mode="fraction")
@@ -109,6 +95,30 @@ def test_normalized_missing_values_stay_zero_under_mask():
     batch = next(iter(loaders.train))
     missing = ~batch["observed_mask"].bool()
     assert torch.all(batch["observed_data"][missing] == 0)
+
+def test_prep_batches_raises_errors_for_invalid_input():
+    with pytest.raises(TypeError, match = "must be returned by prep_data"):
+        prep_batches(sample_frame(), batch_size=2, val_split=0.25, test_split=0.25,
+                          shuffle=False, normalize=True)
+
+@pytest.mark.parametrize(
+    "options, message",
+    [
+        ({"data": prep_data(sample_frame(), feature_cols=["x"], cutoff=0.5, cutoff_mode="fraction"), 
+          "batch_size": 0, "val_split": 0.25, "test_split": 0.25,
+          "shuffle": False, "normalize": True}, "batch_size must be positive and num_workers nonnegative"),
+        ({"data": prep_data(sample_frame(), feature_cols=["x"], cutoff=0.5, cutoff_mode="fraction"), 
+          "batch_size": 2, "val_split": 0.25, "test_split": 0.25,
+            "num_workers": -1, "shuffle": False, "normalize": True}, 
+            "batch_size must be positive and num_workers nonnegative"),
+        ({"data": prep_data(sample_frame(), feature_cols=["x"], cutoff=0.5, cutoff_mode="fraction"), 
+          "batch_size": 2, "val_split": 0.25, "test_split": 0.85,
+           "shuffle": False, "normalize": True}, "val_split and test_split must be nonnegative and sum to less than 1")    
+    ],
+)
+def test_prep_batches_rejects_invalid_options(options, message):
+    with pytest.raises(ValueError, match=message):
+        prep_batches(**options)
 
 
 
