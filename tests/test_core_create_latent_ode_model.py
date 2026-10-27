@@ -12,7 +12,9 @@ DEFAULT_NETWORKS = {
     "emission": {"hidden_dims": [20]},
 }
 
-
+"""
+_cfg_value() tests
+"""
 
 def test_cfg_value_non_dict():
     from neural_ode._core.create_latent_ode_model import _cfg_value
@@ -42,6 +44,39 @@ def test_cfg_value__dict():
 
     assert result1 == "First Attribute"
     assert result2 == 2
+
+"""
+create_LatentODE_model() tests
+
+"""
+
+def test_no_networks():
+    with pytest.raises(ValueError, match = "model.networks must be provided explicitly."):
+        create_LatentODE_model(
+                    input_dim=2,
+                    model_name="LatentODE_rnn",
+                    latent_dim=3,
+                )
+
+def test_unsupported_ODE_model():
+        
+    with pytest.raises(ValueError, match = "Unknown LatentODE model_name: not a model"):
+        create_LatentODE_model(
+                    input_dim=2,
+                    networks=RNN_NETWORKS,
+                    model_name="not a model",
+                    latent_dim=3,
+                )
+
+def test_unsupported_ODE_method():
+    with pytest.raises(ValueError, match= "Unsupported ODE method 'not a method'. Use one of: euler, rk2, rk4."):
+            create_LatentODE_model(
+                input_dim=2,
+                networks=RNN_NETWORKS,
+                model_name="LatentODE_rnn",
+                latent_dim=3,
+                method= "not a method"
+            )
 
 def test_builds_small_odernn_latent_ode():
     NETWORKS = {
@@ -97,34 +132,4 @@ def test_builds_small_rnn_latent_ode():
     assert isinstance(model, LatentODE)
     assert isinstance(model.encoder_z0, Encoder_z0_RNN)
     assert model.k.item() == 2
-
-
-def test_no_networks():
-    
-    with pytest.raises(ValueError, match = "model.networks must be provided explicitly."):
-        create_LatentODE_model(
-                    input_dim=2,
-                    model_name="LatentODE_rnn",
-                    latent_dim=3,
-                )
-
-def test_unsupported_ODE_model():
-        
-    with pytest.raises(ValueError, match = "Unknown LatentODE model_name: not a model"):
-        create_LatentODE_model(
-                    input_dim=2,
-                    networks=RNN_NETWORKS,
-                    model_name="not a model",
-                    latent_dim=3,
-                )
-
-def test_unsupported_ODE_method():
-    with pytest.raises(ValueError, match= "Unsupported ODE method 'not a method'. Use one of: euler, rk2, rk4."):
-            create_LatentODE_model(
-                input_dim=2,
-                networks=RNN_NETWORKS,
-                model_name="LatentODE_rnn",
-                latent_dim=3,
-                method= "not a method"
-            )
-
+ 

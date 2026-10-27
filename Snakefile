@@ -1,7 +1,9 @@
 """Fetch Oxford weather, train a forecaster and save evaluation and figures."""
 
 from pathlib import Path
+from datetime import datetime
 import sys
+from zoneinfo import ZoneInfo
 
 ROOT = Path(workflow.basedir)
 configfile: str(ROOT / "examples/config.yaml")
@@ -9,6 +11,7 @@ configfile: str(ROOT / "examples/config.yaml")
 RESULTS = config["output_dir"]
 SOURCES = sorted(str(path) for path in (ROOT / "src/neural_ode").rglob("*.py"))
 HELPERS = str(ROOT / "examples/scripts/helpers.py")
+LIVE_DATE = datetime.now(ZoneInfo("Europe/London")).date().isoformat()
 
 
 rule all:
@@ -17,6 +20,28 @@ rule all:
         f"{RESULTS}/figures/input.pdf",
         f"{RESULTS}/figures/predictions.pdf",
         f"{RESULTS}/figures/training_loss.pdf",
+
+
+rule live_forecast:
+    input:
+        model=str(ROOT / "examples/forecast/models/oxford_weather_model.pt"),
+        predictor=str(ROOT / "examples/forecast/predict_oxford_weather.py"),
+        fetcher=str(ROOT / "examples/forecast/fetch_oxford_weather.py"),
+        plotter=str(ROOT / "examples/forecast/plot_temperature_forecast.py"),
+        sources=SOURCES,
+    output:
+        csv=f"results/live/oxford_weather_forecast_{LIVE_DATE}.csv",
+        png=f"examples/forecast/models/oxford_weather_forecast_{LIVE_DATE}.png",
+    params:
+        python=sys.executable,
+        forecast_date=LIVE_DATE,
+    threads: 1
+    log:
+        f"results/live/logs/forecast_{LIVE_DATE}.log",
+    shell:
+        "({params.python:q} {input.predictor:q} --model {input.model:q} "
+        "--forecast-date {params.forecast_date:q} --output {output.csv:q} && "
+        "{params.python:q} {input.plotter:q} --input {output.csv:q} --output {output.png:q}) > {log:q} 2>&1"
 
 
 rule fetch_weather:
