@@ -7,11 +7,14 @@ flowchart TB
 	id2[gather_data]
 	id3[train]
 	id4[plot]
+	id5[fetch_weather]
 	style id0 fill:#D95757,stroke-width:2px,color:#333333
 	style id1 fill:#D9BF57,stroke-width:2px,color:#333333
 	style id2 fill:#8BD957,stroke-width:2px,color:#333333
 	style id3 fill:#57BFD9,stroke-width:2px,color:#333333
 	style id4 fill:#57D98B,stroke-width:2px,color:#333333
+	style id5 fill:#BFA3E0,stroke-width:2px,color:#333333
+	id5 --> id2
 	id1 --> id0
 	id4 --> id0
 	id2 --> id1

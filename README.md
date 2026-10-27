@@ -114,32 +114,45 @@ snakemake --cores 1 --dry-run
 snakemake --cores 1
 ```
 
-The [Snakefile](Snakefile) connects four stages: gather data, train, evaluate
-and plot. For now, data gathering calls `generate_synthetic_data` and saves
-training and test CSVs. A future real-data acquisition function can replace
-that call in [`gather_data.py`](examples/scripts/gather_data.py), producing
-the same two long-format CSV inputs.
+The [Snakefile](Snakefile) fetches Oxford weather using
+[`examples/forecast/fetch_oxford_weather.py`](examples/forecast/fetch_oxford_weather.py),
+splits the prepared windows, trains a model, evaluates it and plots the results.
+The first run requires internet access to the Open-Meteo archive API. Each
+window contains 30 context days followed by 7 forecast days, advancing by 7 days.
 
-![Example workflow DAG: gather_data supplies train, evaluate and plot; train supplies evaluate and plot; all collects the final outputs.](examples/figures/dag.svg)
+![Weather workflow DAG: fetch_weather supplies gather_data; gather_data supplies train, evaluate and plot; train supplies evaluate and plot; all collects the final outputs.](examples/figures/dag.svg)
 
 Evaluation and plotting both depend on the trained model and can run
 independently once training finishes. The `all` target collects their final
 outputs. The diagram's Mermaid source is available in
 [`examples/figures/dag.mmd`](examples/figures/dag.mmd).
 
-Edit [`examples/config.yaml`](examples/config.yaml) to set generation,
+Edit [`examples/config.yaml`](examples/config.yaml) to set archive dates,
 preparation, model and training parameters. Outputs go to
-`results/basic_workflow/`:
+`results/oxford_weather/`:
 
 | Output | Contents |
 | --- | --- |
-| `data/train.csv`, `data/test.csv` | Generated training and test trajectories |
+| `data/train.csv`, `data/test.csv` | Chronologically split weather windows |
 | `model.pt` | Trained model weights and reconstruction metadata |
 | `history.json` | Per-epoch pretraining and fine-tuning metrics |
 | `metrics.json` | Evaluation on the separate test set |
 | `figures/input.pdf`, `figures/predictions.pdf` | Test inputs and forecasts, one page per feature |
 | `figures/training_loss.pdf` | Training loss, one page per training phase |
 | `logs/` | One log per workflow stage |
+
+The fetched windows are cached at
+`examples/forecast/data/oxford_weather_windows.csv`, shared with the standalone
+[weather example](examples/forecast/README.md). The default archive dates are
+1 January 2021 to 31 December 2025; change `weather.end_date` to extend the
+dataset. Existing cached windows are reused when their fetch inputs and
+parameters are unchanged.
+
+The latest 20% of windows form the test set. Within the earlier data, the latest
+20% form validation. Windows overlapping a later split's dates are discarded,
+so training, validation and test sets share no observation dates. Consequently,
+the retained proportions differ from the requested fractions. Weather has no
+class labels, so NMI, ARI and matched accuracy are unavailable.
 
 The workflow keeps pretraining, GMM fitting and fine-tuning in one training
 job. Its private checkpoint includes the model configuration, weights,
@@ -181,9 +194,10 @@ ruff check .
 python -m pytest
 ```
 
-The workflow integration test uses a tiny generated dataset to check saved
+The workflow integration test uses an offline weather-shaped fixture to check saved
 outputs, reuse of completed work, plotting without retraining and planned
-reruns after parameter changes. It is skipped when Snakemake is unavailable.
+reruns after parameter changes. It also checks that chronological splits share
+no observation dates. The integration test is skipped when Snakemake is unavailable.
 
 ## Source and licence
 
