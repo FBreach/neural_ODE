@@ -243,6 +243,12 @@ workflow, which evaluates held-out historical windows.
 
 ## Documentation
 
+For a daily seven-day forecast CSV without retraining, use the explicit
+`snakemake --cores 1 live_forecast` target. The
+[daily forecast setup guide](examples/forecast/README.md#daily-inference-with-snakemake)
+uses the checkpoint included in the repository and covers the 08:17 UTC GitHub
+Actions schedule with downloadable CSV artifacts.
+
 The [Read the Docs site](https://neural-ode.readthedocs.io/en/latest/index.html)
 contains the getting-started guide and API reference generated from the
 NumPy-style docstrings. To build the Sphinx documentation locally:
