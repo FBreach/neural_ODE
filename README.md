@@ -1,8 +1,13 @@
 # neural_ode
 
 A Python package for forecasting and clustering irregular trajectories with a
-Latent ODE and Gaussian mixture prior. This project is part of the Research Software Engineering Course at the University of Oxford and builds upon work done by Felix Breach at the Adaptive Brain Lab (University of Cambridge).
+Latent ODE and Gaussian mixture prior. It includes data preparation, synthetic
+trajectory generation, training, evaluation and plotting, with a Snakemake
+workflow for Oxford weather and a Docker image for running that workflow.
 
+This project is part of the Research Software Engineering Course at the
+University of Oxford and builds upon work done by Felix Breach at the
+Adaptive Brain Lab (University of Cambridge).
 
 [Read the documentation](https://neural-ode.readthedocs.io/en/latest/index.html)
 for the getting started guide and API reference.
@@ -21,12 +26,62 @@ python -m pip install -e .
 The distribution name is `neural-ode`; the import name is `neural_ode`.
 The Snakemake example and documentation build also require Python 3.11 or later.
 
-## Quick start
+## Python API quick start
 
 To train the model, the user must provide an appropriate trajectory or csv path to prep_data.
 The input data must contain one row per trajectory observation with an ID, a
 numeric time, and one column per feature. The final 30% of each trajectory is reserved for forecasting.
 Labels are optional metadata for plotting and evaluation. Missing feature values are supported. 
+Input data is long format: one row per trajectory observation, with an ID, a
+numeric time and one column per feature. Labels are optional metadata for
+plotting and evaluation. Missing feature values are supported.
+
+This example generates training and test data in memory, trains a model and
+evaluates forecasts on the separate test set:
+
+```python
+from neural_ode import (
+    evaluate_performance, generate_synthetic_data,
+    plot_predicted_trajectories, predict, prep_batches, prep_data,
+    train_fit_gmm, train_finetune, train_pretrain,
+)
+
+train_df, test_df = generate_synthetic_data(
+    n_train=60, n_test=18, n_classes=3, n_features=2,
+    length=20, irregularity=0.4, noise=0.1, seed=94,
+)
+data_options = {
+    "id_col": "trajectory_id",
+    "time_col": "time",
+    "feature_cols": ["feature_0", "feature_1"],
+    "label_col": "label",
+    "cutoff": 0.7,
+    "cutoff_mode": "fraction",
+}
+data = prep_data(train_df, **data_options)
+loaders = prep_batches(
+    data, batch_size=16, val_split=0.2, normalize=True, seed=94,
+)
+pretrained = train_pretrain(
+    loaders, model_config={"latent_dim": 6, "n_clusters": 3},
+    epochs=20, seed=94,
+)
+gmm = train_fit_gmm(pretrained.model, loaders, seed=94)
+finetuned = train_finetune(gmm.model, loaders, epochs=20, seed=94)
+
+test_data = prep_data(test_df, **data_options)
+test_loader = prep_batches(
+    test_data, batch_size=16, val_split=0, normalize=True, shuffle=False
+).train
+scores = evaluate_performance(finetuned.model, test_loader)
+predictions = predict(finetuned.model, test_data)
+figures = plot_predicted_trajectories(predictions)
+print(scores)
+```
+
+`prep_data` also accepts a CSV path. The cutoff reserves the final 30% of each
+trajectory for forecasting. Training consists of reconstruction pretraining,
+GMM fitting and fine-tuning with the mixture prior.
 
 `evaluate_performance` reports masked forecast MSE, label-based clustering
 scores (NMI, ARI and matched accuracy), and label-free clustering scores
@@ -47,7 +102,7 @@ For a command-line example using your own CSV, see
 python examples/basic_workflow.py path/to/trajectories.csv --epochs 20
 ```
 
-## Run the example with Snakemake
+## Run the weather example with Snakemake
 
 With Python 3.11 or later, install the optional workflow dependencies and run
 these commands from the repository root:
@@ -108,8 +163,81 @@ directory or configuration file:
 snakemake --cores 1 --config output_dir=results/another_run
 snakemake --cores 1 --configfile path/to/config.yaml
 ```
+![Latest Oxford temperature forecast](https://fbreach.github.io/neural_ODE/latest_forecast.png)
+
+## Run the weather workflow with Docker
+
+Install Docker and start its daemon. Run the
+following commands from the repository root. The image provides Python 3.12,
+CPU-only PyTorch, the package and Snakemake; a local Python environment is not
+required for this route.
+
+Build the image from the [Dockerfile](Dockerfile):
+
+```sh
+docker build -t neural-ode .
+```
+
+Run the complete weather workflow and keep its outputs on your machine:
+
+```sh
+mkdir -p results
+docker run --rm \
+  --mount type=bind,source="$(pwd)/results",target=/app/results \
+  neural-ode
+```
+
+The default command is `snakemake --cores 1`. It fetches the configured weather
+archive, trains and evaluates the model, and creates the PDFs listed above.
+The first fetch requires internet access. View the saved model, metrics, logs
+and figures under `results/oxford_weather/` on the host.
+
+The image runs as the non-root user `runner`, so mounted output directories
+must be writable by that user. The bind mount retains outputs when `--rm`
+removes the container. Running `docker run --rm neural-ode` without a mount
+also executes the workflow, but its outputs disappear when the container
+exits. See [Docker's bind mount documentation](https://docs.docker.com/engine/storage/bind-mounts/)
+for how host directories are shared with containers.
+
+The command above persists only `results/`. Downloaded weather windows and
+Snakemake metadata remain inside the container, so a fresh container fetches
+the archive again and can rerun completed stages.
+
+To preview the jobs without executing them, override the default command:
+
+```sh
+docker run --rm neural-ode snakemake --cores 1 --dry-run
+```
+
+The image contains a copy of `examples/config.yaml` from build time. To use
+an edited host configuration without rebuilding, mount that file read-only:
+
+```sh
+docker run --rm \
+  --mount type=bind,source="$(pwd)/results",target=/app/results \
+  --mount type=bind,source="$(pwd)/examples/config.yaml",target=/app/examples/config.yaml,readonly \
+  neural-ode
+```
+
+Keep `output_dir` under `results/` to retain outputs through the mount above.
+Rebuild the image after changing package code or workflow scripts. The
+[.dockerignore](.dockerignore) excludes local environments, credentials,
+Snakemake metadata, downloaded weather data and generated results from the
+build context. Dependency versions are not locked, so rebuilding can install
+different versions.
+
+The [standalone weather example](examples/forecast/README.md) also provides
+commands for forecasting the next seven days from recent observations. Those
+commands use their own checkpoint format. The Docker image runs the root
+workflow, which evaluates held-out historical windows.
 
 ## Documentation
+
+For a daily seven-day forecast CSV without retraining, use the explicit
+`snakemake --cores 1 live_forecast` target. The
+[daily forecast setup guide](examples/forecast/README.md#daily-inference-with-snakemake)
+uses the checkpoint included in the repository and covers the 08:17 UTC GitHub
+Actions schedule with downloadable CSV artifacts.
 
 The [Read the Docs site](https://neural-ode.readthedocs.io/en/latest/index.html)
 contains the getting-started guide and API reference generated from the
